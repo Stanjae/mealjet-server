@@ -1,0 +1,38 @@
+import Redis from 'ioredis';
+import { env } from './env.js';
+import { logger } from '@shared/utils/logger.js';
+class RedisClient {
+    static instance;
+    static getInstance() {
+        if (!RedisClient.instance) {
+            RedisClient.instance = new Redis(env.REDIS_URL, {
+                retryStrategy: (times) => Math.min(times * 100, 3000),
+                maxRetriesPerRequest: 3,
+                enableOfflineQueue: false,
+                lazyConnect: true,
+            });
+            RedisClient.instance.on('connect', () => logger.info('Redis connected'));
+            RedisClient.instance.on('error', (err) => logger.error('Redis error', err));
+            RedisClient.instance.on('reconnecting', () => logger.warn('Redis reconnecting...'));
+        }
+        return RedisClient.instance;
+    }
+}
+export const redis = RedisClient.getInstance();
+// Helper wrappers with typed generics
+export const redisGet = async (key) => {
+    const val = await redis.get(key);
+    return val ? JSON.parse(val) : null;
+};
+export const redisSet = async (key, value, ttlSeconds) => {
+    const serialized = JSON.stringify(value);
+    if (ttlSeconds) {
+        await redis.setex(key, ttlSeconds, serialized);
+    }
+    else {
+        await redis.set(key, serialized);
+    }
+};
+export const redisDel = async (key) => {
+    await redis.del(key);
+};

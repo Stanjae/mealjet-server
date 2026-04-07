@@ -1,0 +1,114 @@
+import { Request, Response } from "express";
+import { authService } from "./auth.service.js";
+import { ApiResponse } from "@shared/utils/api-response.js";
+import { asyncHandler } from "@shared/middleware/error.middleware";
+import { cookieOptions } from "@shared/utils/helpers.js";
+import { IUser } from "@modules/users/user.types.js";
+import { IUserDocument } from "@modules/users/user.model.js";
+
+export const register = asyncHandler(async (req: Request, res: Response) => {
+  const result = await authService.register(req.body);
+  ApiResponse.created(res, result);
+});
+
+export const verifyEmail = asyncHandler(async (req: Request, res: Response) => {
+  const result = await authService.verifyEmail(req.query.token as string);
+  ApiResponse.success(res, result);
+});
+
+export const verifyNow = asyncHandler(async (req: Request, res: Response) => {
+  const result = await authService.verifyNow(req.query.email as string);
+  ApiResponse.success(res, result);
+});
+
+export const login = asyncHandler(async (req: Request, res: Response) => {
+  const { user, tokens } = await authService.login(req.body);
+  // Refresh token goes in an httpOnly cookie
+  res.cookie(
+    "refreshToken",
+    tokens.refreshToken,
+    cookieOptions(7 * 24 * 60 * 60 * 1000),
+  );
+  res.cookie("accessToken", tokens.accessToken, cookieOptions(15 * 60 * 1000)); // 15 min expiry for access token
+  ApiResponse.success(res, { user }, "Login successful");
+});
+
+export const refresh = asyncHandler(async (req: Request, res: Response) => {
+  const { refreshToken } = req.cookies;
+  if (!refreshToken) {
+    ApiResponse.unauthorized(res, "No refresh token");
+    return;
+  }
+  const tokens = await authService.refresh(refreshToken);
+  res.cookie(
+    "refreshToken",
+    tokens.refreshToken,
+    cookieOptions(7 * 24 * 60 * 60 * 1000, "/auth/refresh"),
+  );
+  ApiResponse.success(res, { accessToken: tokens.accessToken });
+});
+
+export const logout = asyncHandler(async (req: Request, res: Response) => {
+  const { refreshToken } = req.cookies;
+  if (req.user && refreshToken) {
+    await authService.logout(req.user._id.toString(), refreshToken);
+  }
+  res.clearCookie("accessToken", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+  });
+
+  res.clearCookie("refreshToken", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+  });
+  ApiResponse.success(res, null, "Logged out successfully");
+});
+
+export const isAuthenticated = asyncHandler(
+  async (req: Request, res: Response) => {
+    const userObj = req?.user?.toObject();
+    const { passwordHash, refreshTokens, _id, ...safeUser } = userObj;
+    ApiResponse.success(
+      res,
+      { isAuthenticated: true, user: { ...safeUser, id: _id } },
+      "User is authenticated",
+    );
+  },
+);
+
+export const updateUserProfile = asyncHandler(
+  async (req: Request, res: Response) => {
+    const result = await authService.updateUserProfile(
+      req?.user as IUserDocument,
+      req.body,
+      typeof req.query.type === "string" ? req.query.type : undefined,
+    );
+    const user = result.user.toObject();
+    ApiResponse.success(res, { user }, result.message);
+  },
+);
+
+export const updateUserCurrentAddress = asyncHandler(
+  async (req: Request, res: Response) => {
+    const result = await authService.updateUserCurrentAddress(
+      req?.user as IUserDocument,
+      req.body,
+    );
+    const user = result.user.toObject();
+    ApiResponse.success(res, { user }, result.message);
+  },
+);
+
+export const deleteUserAddress = asyncHandler(
+  async (req: Request, res: Response) => {
+    const result = await authService.deleteUserAddress(
+      req?.user as IUserDocument,
+      req.params.addressId as string
+    );
+    const user = result.user.toObject();
+    ApiResponse.success(res, { user }, result.message);
+  },
+);
