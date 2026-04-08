@@ -6,7 +6,7 @@ services:
     region: oregon
     branch: main
     buildCommand: npm ci && npm run build
-    startCommand: npm run start
+    startCommand: npm run start && node dist/server.js
     autoDeploy: true
     healthCheckPath: /health
     envVars:
