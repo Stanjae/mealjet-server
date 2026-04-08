@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc && tsc-alias",
-    "start": "node dist/server.js",
+    "start": "node --require tsconfig-paths/register dist/server.js",
     "test": "vitest",
     "test:coverage": "vitest run --coverage",
     "lint": "eslint src",
@@ -67,6 +67,7 @@
     "passport-local": "^1.0.0",
     "resend": "^6.9.2",
     "socket.io": "^4.8.3",
+    "tsconfig-paths": "^4.2.0",
     "winston": "^3.19.0",
     "zod": "^4.3.6"
   }
