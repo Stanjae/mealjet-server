@@ -5,8 +5,8 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsc && tsc-alias",
-    "start": "node --require tsconfig-paths/register dist/server.js",
+    "build": "echo 'no build needed'",
+    "start": "tsx src/server.ts",
     "test": "vitest",
     "test:coverage": "vitest run --coverage",
     "lint": "eslint src",
@@ -38,11 +38,11 @@
     "supertest": "^7.2.2",
     "ts-node-dev": "^2.0.0",
     "tsc-alias": "^1.8.16",
-    "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"
   },
   "dependencies": {
+    "tsx": "^4.21.0",
     "@googlemaps/google-maps-services-js": "^3.4.2",
     "agenda": "^6.2.2",
     "bcryptjs": "^3.0.3",

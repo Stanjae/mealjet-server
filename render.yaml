@@ -5,8 +5,8 @@ services:
     plan: starter
     region: oregon
     branch: main
-    buildCommand: npm ci && npm run build
-    startCommand: npm run start
+    buildCommand: npm ci
+    startCommand: npm start
     autoDeploy: true
     healthCheckPath: /health
     envVars:
