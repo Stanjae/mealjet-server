@@ -3,7 +3,11 @@ import { env } from "@shared/config/env";
 import { access } from "node:fs";
 
 const paystackService = {
-  initializePayment: async (customer:IUserDocument, grandTotal: number, checkoutSessionId:string) => {
+  initializePayment: async (
+    customer: IUserDocument,
+    grandTotal: number,
+    checkoutSessionId: string,
+  ) => {
     const res = await fetch("https://api.paystack.co/transaction/initialize", {
       method: "POST",
       headers: {
@@ -13,7 +17,7 @@ const paystackService = {
       body: JSON.stringify({
         email: customer.email,
         amount: grandTotal * 100, // Paystack uses kobo
-        reference: checkoutSessionId, // tie payment to checkout session
+        reference: checkoutSessionId,
         metadata: {
           customerId: customer._id,
           checkoutSessionId,
@@ -22,8 +26,10 @@ const paystackService = {
     });
 
     const data = await res.json();
-    console.log("Paystack initialize response:", data);
-    return {paymentUrl:data.data.authorization_url, accessCode:data.data.access_code}; // redirect customer here to pay
+    return {
+      paymentUrl: data.data.authorization_url,
+      accessCode: data.data.access_code,
+    };
   },
 };
 

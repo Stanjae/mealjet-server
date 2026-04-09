@@ -8,20 +8,26 @@ import { IUserDocument } from "@modules/users/user.model";
 export const initializePayment = asyncHandler(
   async (req: Request, res: Response) => {
     const { payload } = req.body;
-    const result = await paymentService.initializePaymentService(
+    const {
+      paymentMethod,
+      paymentUrl,
+      accessCode,
+      checkoutSessionId,
+      message,
+    } = await paymentService.initializePaymentService(
       payload as TInitializePaymentPayload,
       req.user as IUserDocument,
     );
-    console.log(result);
 
     ApiResponse.success(
       res,
       {
-        paymentUrl: result.authorizationUrl,
-        checkoutSessionId: result.checkoutSessionId,
-        paymentMethod: result.paymentMethod,
+        paymentUrl,
+        checkoutSessionId,
+        paymentMethod,
+        accessCode,
       },
-      result.message,
+      message,
     );
   },
 );

@@ -197,4 +197,23 @@ export async function buildCheckoutSummary(
     totalSubtotal,
     totalDeliveryFee,
   };
+};
+
+let dailyCounter = 0;
+const lastDate = new Date().toDateString();
+export async function generateOrderNumber() {
+  const timestamp = Date.now().toString(36).toUpperCase(); // Base36 = shorter
+
+   const now = new Date();
+  const currentDate = now.toDateString();
+  
+  // Reset counter at midnight
+  if (currentDate !== lastDate) {
+    dailyCounter = 0;
+  }
+  
+  dailyCounter++;
+  const counter = dailyCounter.toString().padStart(4, '0'); // 0001
+  
+  return `ORD-${timestamp}-${counter}`; // ORD-LXJQ2X-0001
 }

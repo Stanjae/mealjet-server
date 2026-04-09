@@ -29,6 +29,8 @@ async function main() {
     transports: ['websocket', 'polling'],
   });
 
+  const connectedUsers = new Map<string, string>(); // userId → socketId
+
   // Basic Socket.io connection handler
   // Full event handlers will be in src/shared/sockets/
   io.on('connection', (socket) => {
@@ -47,6 +49,7 @@ async function main() {
 
   // Make io available globally via app locals
   app.locals.io = io;
+  app.locals.connectedUsers = connectedUsers;
 
   // 5. Start listening
   httpServer.listen(env.PORT, () => {

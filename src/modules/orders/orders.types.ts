@@ -1,5 +1,13 @@
 import { IAddon } from "@modules/menus/menu.types";
+import { IAddress, UserRole } from "@modules/users/user.types";
 import { ILocation } from "@modules/vendor/vendor.types";
+import {
+  orderTypes,
+  PAYMENT_METHODS,
+  PAYMENT_STATUSES,
+  statusHistoryStates,
+} from "@shared/constants/orders.constants";
+import { Types } from "mongoose";
 
 export type MJAddToCartItem = {
   title: string;
@@ -8,7 +16,7 @@ export type MJAddToCartItem = {
   price: number;
   imageUrl: string;
   totalQuantity: number;
-  addons?:IAddon[];
+  addons?: IAddon[];
   vendorId: string;
   vendorName: string;
   vendorImage: string;
@@ -16,7 +24,6 @@ export type MJAddToCartItem = {
   vendorLocation: ILocation;
   vendorDeliveryFee: number;
 };
-
 
 export type ICheckoutSummary = {
   vendorId: string;
@@ -30,6 +37,8 @@ export type ICheckoutSummary = {
   items: MJAddToCartItem[];
   total: number;
   serviceCharge: number;
+  deliveryAddress: IAddress;
+  deliveryLocation: ILocation;
 };
 
 export type IFullCheckoutSummary = {
@@ -41,4 +50,58 @@ export type IFullCheckoutSummary = {
     totalDeliveryFee: number;
   };
   checkoutSessionId: string;
+};
+export type IStatusHistory = {
+  status: (typeof statusHistoryStates)[number];
+  timestamp: Date;
+  updatedBy: Types.ObjectId;
+  note: string;
+};
+
+export type IItemSnapshot = {
+  menuItem: Types.ObjectId;
+  name: string;
+  imageUrl: string;
+  price: number; // price at time of order
+  quantity: number;
+  addons: [
+    {
+      name: string;
+      price: number;
+    },
+  ];
+  subtotal: number; // (price + addons) * quantity
+};
+
+export type IOrder = {
+  orderNumber: string;
+  checkoutSessionId: string;
+  customer: Types.ObjectId;
+  vendor: Types.ObjectId;
+  driver: Types.ObjectId;
+  status: (typeof statusHistoryStates)[number];
+  deliveryFee: number;
+  deliveryProof: string;
+  estimatedDeliveryTime: Date | null;
+  actualDeliveryTime: Date | null;
+  driverRating: number | null;
+  vendorRating: number | null;
+  statusHistory: IStatusHistory[];
+  items: MJAddToCartItem[];
+  deliveryAddress: IAddress;
+  deliveryLocation?: ILocation;
+  subtotal: number; // sum of all vendor subtotals
+  serviceFee: number;
+  discount?: number;
+  total: number;
+  paymentMethod: (typeof PAYMENT_METHODS)[number];
+  paymentStatus: (typeof PAYMENT_STATUSES)[number];
+  paymentReference: string; // some payments might not have this
+  refundAmount?: number;
+  promoCode?: string;
+  customerNotes?: string | null;
+  orderType: (typeof orderTypes)[number];
+  currency: string;
+  cancelledBy?: UserRole;
+  cancellationReason?: string;
 };
