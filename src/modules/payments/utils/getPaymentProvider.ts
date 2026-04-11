@@ -1,10 +1,11 @@
 import { TPaymentMenthod } from "../payment.types";
 import paystackService from "../providers/paystack";
+import walletService from "../providers/wallet";
 
 export const getPaymentProvider = (paymentMethod: TPaymentMenthod) => {
     switch (paymentMethod) {
         case 'wallet':
-            return paystackService
+            return walletService
         case 'bank_transfer':
             return paystackService
         default:

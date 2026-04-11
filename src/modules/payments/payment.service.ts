@@ -16,7 +16,7 @@ import { Request } from "express";
 
 class PaymentService {
   async initializePaymentService(
-    { checkoutSessionId, paymentMethod }: TInitializePaymentPayload,
+    { checkoutSessionId, paymentMethod, noteForRider, noteForVendor }: TInitializePaymentPayload,
     user: IUserDocument,
   ) {
     const cached = await redis.get(`checkout:${checkoutSessionId}`);
@@ -34,6 +34,8 @@ class PaymentService {
       user,
       Math.floor(Number(summary.grandTotal)),
       checkoutSessionId,
+      noteForRider as string,
+      noteForVendor as string,
     );
 
     return {
@@ -91,7 +93,6 @@ class PaymentService {
       }),
     );
 
-    // 3. Create ONE transaction record for the whole checkout
     await Transaction.create({
       reference,
       order: orders.map((o) => o._id), // all order IDs
@@ -105,7 +106,6 @@ class PaymentService {
       metadata: { checkoutSessionId },
     });
 
-    // 4. Notify each vendor via Socket.io
     await Promise.all(
       orders.map(async (order) => {
         const vendor = await Vendor.findById(order.vendor);
@@ -120,7 +120,6 @@ class PaymentService {
       }),
     );
 
-    // 5. Notify customer via Socket.io
     emitToUser(req, customerId, "checkout_success", {
       orders: orders.map((o) => ({
         orderId: o._id,
@@ -130,9 +129,34 @@ class PaymentService {
       })),
     });
 
-    // 6. Delete summary from Redis (no longer needed)
     await redis.del(`checkout:${checkoutSessionId}`);
   }
+
+  async handlePaymentFailed(req:Request,data: THandlePaymentSuccessDataPayload) {
+  const { metadata } = data;
+  const { customerId, checkoutSessionId } = metadata;
+
+  // Create a failed transaction record for audit
+  await Transaction.create({
+    reference: data.reference,
+    user: customerId,
+    type: "payment",
+    amount: data.amount / 100,
+    currency: "NGN",
+    status: "failed",
+    gateway: "paystack",
+    gatewayResponse: data,
+    metadata: { checkoutSessionId },
+  });
+
+  // Notify customer
+  emitToUser(req, customerId, "checkout_failed", {
+    message: "Payment failed. Please try again.",
+  });
+
+  // Clear Redis
+  await redis.del(`checkout:${checkoutSessionId}`);
+}
 }
 
 const paymentService = new PaymentService();

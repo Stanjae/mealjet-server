@@ -1,12 +1,13 @@
 import { IUserDocument } from "@modules/users/user.model";
 import { env } from "@shared/config/env";
-import { access } from "node:fs";
 
 const paystackService = {
   initializePayment: async (
     customer: IUserDocument,
     grandTotal: number,
     checkoutSessionId: string,
+    noteForRider: string,
+    noteForVendor: string,
   ) => {
     const res = await fetch("https://api.paystack.co/transaction/initialize", {
       method: "POST",
@@ -21,6 +22,8 @@ const paystackService = {
         metadata: {
           customerId: customer._id,
           checkoutSessionId,
+          noteForRider,
+          noteForVendor,
         },
       }),
     });

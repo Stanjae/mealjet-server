@@ -4,6 +4,8 @@ export type TInitializePaymentPayload = {
     checkoutSessionId: string;
     paymentMethod: TPaymentMenthod;
     accessCode?: string;
+    noteForRider?: string;
+    noteForVendor?: string;
 };
 
 export type THandlePaymentSuccessDataPayload = {

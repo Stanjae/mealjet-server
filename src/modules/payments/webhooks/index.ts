@@ -14,7 +14,6 @@ export const handlePaystackWebhook = async (req: Request, res: Response) => {
   }
 
   // STEP B: Respond to Paystack immediately (within 5 seconds)
-  // Otherwise Paystack thinks your server is down and retries
   res.sendStatus(200);
 
   // STEP C: Process the event asynchronously
@@ -24,7 +23,7 @@ export const handlePaystackWebhook = async (req: Request, res: Response) => {
     await paymentService.handlePaymentSuccess(req, data);
   }
 
-  /* if (event === "charge.failed") {
-    await handlePaymentFailed(data);
-  } */
+  if (event === "charge.failed") {
+    await paymentService.handlePaymentFailed(req, data);
+  }
 };
