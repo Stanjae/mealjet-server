@@ -32,7 +32,7 @@ export function createApp(): Application {
   app.use(helmet());
   app.use(
     cors({
-      origin: [env.CLIENT_URL, 'http://localhost:3000'],
+      origin: [env.CLIENT_URL, 'http://localhost:5173'],
       credentials: true, // Allow cookies (refresh token)
       methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
       allowedHeaders: ["Content-Type", "Authorization"],
