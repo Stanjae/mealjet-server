@@ -26,7 +26,7 @@ import paymentRoutes from "@modules/payments/payment.routes.js";
 export function createApp(): Application {
   const app = express();
 
-  app.set('trust proxy', 1);
+  app.set("trust proxy", 1);
 
   // ── Security ─────────────────────────────────────────────────
   app.use(helmet());
@@ -51,7 +51,6 @@ export function createApp(): Application {
   );
 
   // ── Parsers ──────────────────────────────────────────────────
-    app.use("/api/payments", paymentRoutes);
   // Stripe webhook needs raw body — register BEFORE json parser
   app.use(express.json({ limit: "10mb" }));
   app.use(express.urlencoded({ extended: true }));
@@ -75,6 +74,7 @@ export function createApp(): Application {
   app.use("/api/vendor", vendorRoutes);
   app.use("/api/menu", menuRoutes);
   app.use("/api/orders", orderRoutes);
+  app.use("/api/payments", paymentRoutes);
   // app.use('/api/users',         userRoutes);
   // app.use('/api/restaurants',   restaurantRoutes);
   // app.use('/api/menus',         menuRoutes);
