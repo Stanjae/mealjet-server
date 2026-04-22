@@ -53,17 +53,9 @@ export const logout = asyncHandler(async (req: Request, res: Response) => {
   if (req.user && refreshToken) {
     await authService.logout(req.user._id.toString(), refreshToken);
   }
-  res.clearCookie("accessToken", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
-  });
+  res.clearCookie("accessToken", cookieOptions());
 
-  res.clearCookie("refreshToken", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
-  });
+  res.clearCookie("refreshToken", cookieOptions());
   ApiResponse.success(res, null, "Logged out successfully");
 });
 

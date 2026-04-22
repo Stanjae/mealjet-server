@@ -17,15 +17,25 @@ dayjs.extend(timezone);
 dayjs.tz.setDefault("Africa/Lagos");
 
 export const newDayJs = () => dayjs();
-export const cookieOptions = (maxAge: number, path?: string) => {
-  const COOKIE_OPTIONS = {
+
+type CookieOptions = {
+  httpOnly: boolean;
+  secure: boolean;
+  sameSite: "strict" | "none" | "lax";
+  maxAge?: number;
+  path?: string;
+}
+export const cookieOptions = (maxAge?: number, path?: string) => {
+  const COOKIE_OPTIONS: CookieOptions = {
     httpOnly: true,
     secure: env.NODE_ENV === "production",
-    sameSite: env.NODE_ENV === "production" ? "none" as const : "strict" as const,
-    maxAge, //30 * 24 * 60 * 60 * 1000, // 30 days in ms
+    sameSite: env.NODE_ENV === "production" ? "none" as const : "strict" as const, 
   };
   if (path) {
-    return { ...COOKIE_OPTIONS, path };
+    COOKIE_OPTIONS.path = path;
+  }
+  if(maxAge){
+    COOKIE_OPTIONS.maxAge = maxAge//30 * 24 * 60 * 60 * 1000, // 30 days in ms
   }
   return COOKIE_OPTIONS;
 };
