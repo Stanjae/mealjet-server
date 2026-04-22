@@ -2,11 +2,12 @@ import { env } from "@shared/config/env";
 import crypto from "crypto";
 import { Request, Response } from "express";
 import paymentService from "../payment.service";
+import { logger } from "@shared/utils/logger";
 
 export const handlePaystackWebhook = async (req: Request, res: Response) => {
   const hash = crypto
     .createHmac("sha512", env.PAYSTACK_SECRET_KEY)
-    .update(JSON.stringify(req.body))
+    .update(req.body)
     .digest("hex");
 
   if (hash !== req.headers["x-paystack-signature"]) {
@@ -17,13 +18,17 @@ export const handlePaystackWebhook = async (req: Request, res: Response) => {
   res.sendStatus(200);
 
   // STEP C: Process the event asynchronously
-  const { event, data } = req.body;
+  const { event, data } = JSON.parse(req.body.toString());
 
-  if (event === "charge.success") {
-    await paymentService.handlePaymentSuccess(req, data);
-  }
+  try {
+    if (event === "charge.success") {
+      await paymentService.handlePaymentSuccess(req, data);
+    }
 
-  if (event === "charge.failed") {
-    await paymentService.handlePaymentFailed(req, data);
+    if (event === "charge.failed") {
+      await paymentService.handlePaymentFailed(req, data);
+    }
+  } catch (err) {
+    logger.error(err);
   }
 };

@@ -52,7 +52,13 @@ export function createApp(): Application {
 
   // ── Parsers ──────────────────────────────────────────────────
   // Stripe webhook needs raw body — register BEFORE json parser
-  app.use(express.json({ limit: "10mb" }));
+  app.use((req, _res, next) => {
+    console.log('Original URL:', req.originalUrl);
+  if (req.originalUrl === '/api/payments/webhook/paystack') {
+    return next();
+  }
+  express.json({ limit: '10mb' })(req, _res, next);
+});
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
 
