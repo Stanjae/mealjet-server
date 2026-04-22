@@ -3,7 +3,6 @@ import { authService } from "./auth.service.js";
 import { ApiResponse } from "@shared/utils/api-response.js";
 import { asyncHandler } from "@shared/middleware/error.middleware";
 import { cookieOptions } from "@shared/utils/helpers.js";
-import { IUser } from "@modules/users/user.types.js";
 import { IUserDocument } from "@modules/users/user.model.js";
 
 export const register = asyncHandler(async (req: Request, res: Response) => {
