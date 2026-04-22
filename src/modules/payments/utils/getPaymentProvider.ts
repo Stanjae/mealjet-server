@@ -6,7 +6,7 @@ export const getPaymentProvider = (paymentMethod: TPaymentMenthod) => {
     switch (paymentMethod) {
         case 'wallet':
             return walletService
-        case 'bank_transfer':
+        case 'paystack':
             return paystackService
         default:
             return paystackService

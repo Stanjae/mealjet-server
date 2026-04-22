@@ -14,4 +14,4 @@ export const orderTypes = ["delivery", "pickup"] as const;
 
 export const PAYMENT_STATUSES = ["pending", "paid", "failed", "refunded"] as const;
 
-export const PAYMENT_METHODS = ["wallet", "card", "bank_transfer", "ussd"] as const;
+export const PAYMENT_METHODS = ["wallet", "card", "paystack", "ussd"] as const;

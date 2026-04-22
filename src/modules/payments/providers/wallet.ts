@@ -1,14 +1,15 @@
-import { IUserDocument } from "@modules/users/user.model";
 import { env } from "@shared/config/env";
+import { TInitializePaymentProviderPayload } from "../payment.types";
 
 const walletService = {
-  initializePayment: async (
-    customer: IUserDocument,
-    grandTotal: number,
-    checkoutSessionId: string,
-    noteForRider: string,
-    noteForVendor: string,
-  ) => {
+  initializePayment: async ({
+    customer,
+    grandTotal,
+    checkoutSessionId,
+    noteForRider,
+    noteForVendor,
+    paymentMethod
+  }: TInitializePaymentProviderPayload) => {
     const res = await fetch("https://api.paystack.co/transaction/initialize", {
       method: "POST",
       headers: {
@@ -24,6 +25,7 @@ const walletService = {
           checkoutSessionId,
           noteForRider,
           noteForVendor,
+          paymentMethod
         },
       }),
     });

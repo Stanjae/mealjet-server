@@ -16,7 +16,12 @@ import { Request } from "express";
 
 class PaymentService {
   async initializePaymentService(
-    { checkoutSessionId, paymentMethod, noteForRider, noteForVendor }: TInitializePaymentPayload,
+    {
+      checkoutSessionId,
+      paymentMethod,
+      noteForRider,
+      noteForVendor,
+    }: TInitializePaymentPayload,
     user: IUserDocument,
   ) {
     const cached = await redis.get(`checkout:${checkoutSessionId}`);
@@ -31,11 +36,14 @@ class PaymentService {
     }
 
     const { paymentUrl, accessCode } = await paymentProvider?.initializePayment(
-      user,
-      Math.floor(Number(summary.grandTotal)),
-      checkoutSessionId,
-      noteForRider as string,
-      noteForVendor as string,
+      {
+        customer: user,
+        grandTotal: Math.floor(Number(summary.grandTotal)),
+        checkoutSessionId,
+        noteForRider,
+        noteForVendor,
+        paymentMethod
+      },
     );
 
     return {
@@ -47,7 +55,10 @@ class PaymentService {
     };
   }
 
-  async handlePaymentSuccess(req:Request,data: THandlePaymentSuccessDataPayload) {
+  async handlePaymentSuccess(
+    req: Request,
+    data: THandlePaymentSuccessDataPayload,
+  ) {
     const { reference, amount, metadata } = data;
     const { customerId, checkoutSessionId } = metadata;
 
@@ -79,7 +90,7 @@ class PaymentService {
           serviceFee: vendor.serviceCharge,
           total: vendor.total,
           paymentStatus: "paid",
-          paymentMethod: "",
+          paymentMethod: data.metadata.paymentMethod,
           paymentReference: reference,
           currency: "NGN",
           orderType: "delivery",
@@ -87,8 +98,8 @@ class PaymentService {
           //promoCode:'',
           //customerNotes:'',
           //discount:0,
-            //estimatedDeliveryTime: null,
-            //actualDeliveryTime: null,
+          //estimatedDeliveryTime: null,
+          //actualDeliveryTime: null,
         });
       }),
     );
@@ -101,7 +112,7 @@ class PaymentService {
       amount: amount / 100, // convert from kobo back to naira
       currency: "NGN",
       status: "success",
-      gateway: "paystack",
+      gateway: data.metadata.paymentMethod,
       gatewayResponse: data, // store raw response for audit
       metadata: { checkoutSessionId },
     });
@@ -132,31 +143,34 @@ class PaymentService {
     await redis.del(`checkout:${checkoutSessionId}`);
   }
 
-  async handlePaymentFailed(req:Request,data: THandlePaymentSuccessDataPayload) {
-  const { metadata } = data;
-  const { customerId, checkoutSessionId } = metadata;
+  async handlePaymentFailed(
+    req: Request,
+    data: THandlePaymentSuccessDataPayload,
+  ) {
+    const { metadata } = data;
+    const { customerId, checkoutSessionId } = metadata;
 
-  // Create a failed transaction record for audit
-  await Transaction.create({
-    reference: data.reference,
-    user: customerId,
-    type: "payment",
-    amount: data.amount / 100,
-    currency: "NGN",
-    status: "failed",
-    gateway: "paystack",
-    gatewayResponse: data,
-    metadata: { checkoutSessionId },
-  });
+    // Create a failed transaction record for audit
+    await Transaction.create({
+      reference: data.reference,
+      user: customerId,
+      type: "payment",
+      amount: data.amount / 100,
+      currency: "NGN",
+      status: "failed",
+      gateway: data.metadata.paymentMethod,
+      gatewayResponse: data,
+      metadata: { checkoutSessionId },
+    });
 
-  // Notify customer
-  emitToUser(req, customerId, "checkout_failed", {
-    message: "Payment failed. Please try again.",
-  });
+    // Notify customer
+    emitToUser(req, customerId, "checkout_failed", {
+      message: "Payment failed. Please try again.",
+    });
 
-  // Clear Redis
-  await redis.del(`checkout:${checkoutSessionId}`);
-}
+    // Clear Redis
+    await redis.del(`checkout:${checkoutSessionId}`);
+  }
 }
 
 const paymentService = new PaymentService();
