@@ -26,26 +26,42 @@ async function main() {
       origin:      env.CLIENT_URL,
       credentials: true,
     },
-    transports: ['websocket', 'polling'],
+    transports: ['polling', 'websocket'],
   });
 
   const connectedUsers = new Map<string, string>(); // userId → socketId
 
   // Basic Socket.io connection handler
   // Full event handlers will be in src/shared/sockets/
-  io.on('connection', (socket) => {
-    logger.debug(`Socket connected: ${socket.id}`);
+ io.on('connection', (socket) => {
+  logger.debug(`Socket connected: ${socket.id}`);
 
-    socket.on('join:order', (orderId: string) => {
-      socket.join(`order:${orderId}`);
-    });
-    socket.on('join:restaurant', (restaurantId: string) => {
-      socket.join(`restaurant:${restaurantId}`);
-    });
-    socket.on('disconnect', () => {
-      logger.debug(`Socket disconnected: ${socket.id}`);
-    });
+  // Client must emit 'register' with their userId immediately after connecting
+  socket.on('register', (userId: string) => {
+    connectedUsers.set(userId, socket.id);
+    logger.debug(`User registered: ${userId} → ${socket.id}`);
   });
+
+  socket.on('join:order', (orderId: string) => {
+    socket.join(`order:${orderId}`);
+  });
+
+  socket.on('join:restaurant', (restaurantId: string) => {
+    socket.join(`restaurant:${restaurantId}`);
+  });
+
+  // Clean up when user disconnects
+  socket.on('disconnect', () => {
+    for (const [userId, socketId] of connectedUsers.entries()) {
+      if (socketId === socket.id) {
+        connectedUsers.delete(userId);
+        logger.debug(`User unregistered: ${userId}`);
+        break;
+      }
+    }
+    logger.debug(`Socket disconnected: ${socket.id}`);
+  });
+});
 
   // Make io available globally via app locals
   app.locals.io = io;
