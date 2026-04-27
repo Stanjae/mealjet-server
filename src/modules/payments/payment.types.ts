@@ -17,6 +17,8 @@ export type THandlePaymentSuccessDataPayload = {
     customerId: string;
     checkoutSessionId: string;
     paymentMethod: TPaymentMenthod;
+    noteForRider?: string;
+    noteForVendor?: string;
   };
 };
 

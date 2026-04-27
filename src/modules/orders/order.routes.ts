@@ -4,7 +4,9 @@ import * as orderController from "./orders.controllers";
 
 const router = Router();
 
-router.post("/check-out", authenticate, authorize("customer"), orderController.handleValidateCheckoutOrder)
+router.post("/check-out", authenticate, authorize("customer"), orderController.handleValidateCheckoutOrder);
+
+router.get("/get-order-details/:checkoutId", authenticate, authorize("customer"), orderController.getOrderDetails);
 
 
 export default router;

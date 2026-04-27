@@ -75,6 +75,7 @@ const orderSchema = new Schema<IOrder>(
 
     promoCode: { type: String, default: null },
     customerNotes: { type: String, default: null },
+    noteForDriver: { type: String, default: null },
     orderType: { type: String, enum: orderTypes, default: "delivery" },
     currency: { type: String, default: "NGN" },
 

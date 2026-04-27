@@ -100,6 +100,7 @@ export type IOrder = {
   refundAmount?: number;
   promoCode?: string;
   customerNotes?: string | null;
+  noteForDriver?: string | null;
   orderType: (typeof orderTypes)[number];
   currency: string;
   cancelledBy?: UserRole;

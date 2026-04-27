@@ -20,3 +20,20 @@ export const handleValidateCheckoutOrder = asyncHandler(
     );
   },
 );
+
+export const getOrderDetails = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { checkoutId } = req.params;
+    const result = await orderService.getOrderDetails(
+      req.user as IUserDocument,
+      checkoutId as string,
+    );
+
+    ApiResponse.success(
+      res,
+      { orders: result },
+      "Order details retrieved successfully",
+    );
+  },
+);
+

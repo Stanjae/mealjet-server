@@ -1,4 +1,4 @@
-import { IUserDocument } from "@modules/users/user.model";
+import { IUserDocument, UserModel } from "@modules/users/user.model";
 import {
   THandlePaymentSuccessDataPayload,
   TInitializePaymentPayload,
@@ -68,10 +68,15 @@ class PaymentService {
 
     const { summary } = JSON.parse(cached) as IFullCheckoutSummary;
 
+    const user = await UserModel.findById(customerId);
+    if (!user) return; // user not found, handle gracefully
+
     // 2. Create one order per vendor
     const orders = await Promise.all(
       summary.newCart.map(async (vendor) => {
         const orderNumber = await generateOrderNumber();
+
+        const vendorData = await Vendor.findById(vendor.vendorId);
 
         return Order.create({
           orderNumber,
@@ -83,8 +88,8 @@ class PaymentService {
           statusHistory: [
             { status: "pending", timestamp: new Date(), updatedBy: customerId },
           ],
-          deliveryAddress: vendor.deliveryAddress,
-          deliveryLocation: vendor.deliveryLocation,
+          deliveryAddress: user.toObject().currentAddress,
+          deliveryLocation: user.toObject().location,
           subtotal: vendor.calculatedSubtotal,
           deliveryFee: vendor.vendorDeliveryFee,
           serviceFee: vendor.serviceCharge,
@@ -94,12 +99,12 @@ class PaymentService {
           paymentReference: reference,
           currency: "NGN",
           orderType: "delivery",
-          //
-          //promoCode:'',
-          //customerNotes:'',
-          //discount:0,
-          //estimatedDeliveryTime: null,
-          //actualDeliveryTime: null,
+          promoCode:'',
+          customerNotes:metadata.noteForVendor || '',
+          noteForDriver:metadata.noteForRider || '',
+          discount:0,
+          estimatedDeliveryTime: vendorData?.avgPrepTime.toString(),
+          actualDeliveryTime: null,
         });
       }),
     );
