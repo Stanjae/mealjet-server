@@ -4,7 +4,12 @@ import { PAYMENT_METHODS } from "@shared/constants/orders.constants";
 
 const transactionSchema = new Schema<ITransaction>({
   reference: { type: String, unique: true },
-  order: { type: Schema.Types.ObjectId, ref: "Order" },
+  order: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: "Order",
+    },
+  ],
   user: { type: Schema.Types.ObjectId, ref: "User" },
   type: {
     type: String,
