@@ -73,7 +73,7 @@ class PaymentService {
 
     // 2. Create one order per vendor
     const orders = await Promise.all(
-      summary.newCart.map(async (vendor) => {
+      summary.newCart.map(async (vendor, index) => {
         const orderNumber = await generateOrderNumber();
 
         const vendorData = await Vendor.findById(vendor.vendorId);
@@ -96,7 +96,7 @@ class PaymentService {
           total: vendor.total,
           paymentStatus: "paid",
           paymentMethod: data.metadata.paymentMethod,
-          paymentReference: reference,
+          paymentReference: reference + '-' + index,
           currency: "NGN",
           orderType: "delivery",
           promoCode:'',
