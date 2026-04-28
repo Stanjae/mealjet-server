@@ -42,7 +42,7 @@ class PaymentService {
         checkoutSessionId,
         noteForRider,
         noteForVendor,
-        paymentMethod
+        paymentMethod,
       },
     );
 
@@ -61,6 +61,9 @@ class PaymentService {
   ) {
     const { reference, amount, metadata } = data;
     const { customerId, checkoutSessionId } = metadata;
+
+    const existingTransaction = await Transaction.findOne({ reference });
+    if (existingTransaction) return;
 
     // 1. Get cached summary from Redis
     const cached = await redis.get(`checkout:${checkoutSessionId}`);
@@ -96,13 +99,13 @@ class PaymentService {
           total: vendor.total,
           paymentStatus: "paid",
           paymentMethod: data.metadata.paymentMethod,
-          paymentReference: reference + '-' + index,
+          paymentReference: reference + "-" + index,
           currency: "NGN",
           orderType: "delivery",
-          promoCode:'',
-          customerNotes:metadata.noteForVendor || '',
-          noteForDriver:metadata.noteForRider || '',
-          discount:0,
+          promoCode: "",
+          customerNotes: metadata.noteForVendor || "",
+          noteForDriver: metadata.noteForRider || "",
+          discount: 0,
           estimatedDeliveryTime: vendorData?.avgPrepTime.toString(),
           actualDeliveryTime: null,
         });
@@ -111,7 +114,7 @@ class PaymentService {
 
     await Transaction.create({
       reference,
-      order: orders.map((o) => o._id), // all order IDs
+      order: orders.map((o) => o._id.toString()), // all order IDs
       user: customerId,
       type: "payment",
       amount: amount / 100, // convert from kobo back to naira
