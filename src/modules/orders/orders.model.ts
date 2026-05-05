@@ -39,12 +39,13 @@ const orderSchema = new Schema<IOrder>(
       min: 0,
       default: null,
     },
-    estimatedDeliveryTime: { type: Number, default: null },
-    actualDeliveryTime: { type: Number, default: null },
+    estimatedDeliveryTime: { type: Date, default: null },
+    totalMinutesToDelivery: { type: Number, default: null }, // in minutes
+    actualDeliveryTime: { type: Date, default: null },
     deliveryProof: { type: String, default: null },
     driverRating: { type: Number, default: null },
     vendorRating: { type: Number, default: null },
-
+    calculatedDistanceKm: { type: Number, default: null }, // for internal use, not saved to DB
     deliveryAddress: addressSchema,
     deliveryLocation: {
       type: {

@@ -1,6 +1,10 @@
 import { IUserDocument } from "@modules/users/user.model";
 import { MJAddToCartItem } from "./orders.types";
-import { buildCheckoutSummary, sanitizeToId, validateCart } from "@shared/utils/helpers";
+import {
+  buildCheckoutSummary,
+  sanitizeToId,
+  validateCart,
+} from "@shared/utils/helpers";
 import { redis } from "@shared/config/redis";
 import { AppError } from "@shared/middleware/error.middleware";
 import Order from "./orders.model";
@@ -24,21 +28,61 @@ class OrderService {
       60 * 60, // 1 hour expiration
     );
 
-    return { summary, checkoutSessionId, message: "Checkout validated successfully" };
+    return {
+      summary,
+      checkoutSessionId,
+      message: "Checkout validated successfully",
+    };
   }
 
   async getOrderDetails(user: IUserDocument, checkoutId: string) {
-    if(!checkoutId.startsWith(`checkout_`)) {
+    if (!checkoutId.startsWith(`checkout_`)) {
       throw new AppError(400, "Invalid checkout ID");
     }
 
-    const orders = await Order.find({ checkoutSessionId: checkoutId, customer: user._id.toString() }).populate("vendor", "name logo").lean();
+    const orders = await Order.find({
+      checkoutSessionId: checkoutId,
+      customer: user._id.toString(),
+    })
+      .populate("vendor", "name logo")
+      .lean();
 
     if (!orders || orders.length === 0) {
       throw new AppError(404, "Order not found");
     }
 
-    return orders.map(sanitizeToId);
+    const sanitizedOrders = orders.map(sanitizeToId);
+
+    const totalDeliveryFee = sanitizedOrders.reduce(
+      (total, order) => total + (order.deliveryFee || 0),
+      0,
+    );
+
+    const totalServiceFee = sanitizedOrders.reduce(
+      (total, order) => total + (order.serviceFee || 0),
+      0,
+    );
+
+    const subTotal = sanitizedOrders.reduce(
+      (total, order) => total + (order.subtotal || 0),
+      0,
+    );
+
+    const grandTotal = subTotal + totalDeliveryFee + totalServiceFee;
+
+    const paymentType = orders[0]?.paymentMethod;
+
+    const deliveryAddress = orders[0]?.deliveryAddress?.formattedAddress;
+
+    return {
+      orders: sanitizedOrders,
+      totalDeliveryFee,
+      totalServiceFee,
+      grandTotal,
+      paymentType,
+      deliveryAddress,
+      checkoutId,
+    };
   }
 }
 

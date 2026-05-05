@@ -31,7 +31,7 @@ export const getOrderDetails = asyncHandler(
 
     ApiResponse.success(
       res,
-      { orders: result },
+      result,
       "Order details retrieved successfully",
     );
   },

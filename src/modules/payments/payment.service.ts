@@ -7,7 +7,7 @@ import { redis } from "@shared/config/redis";
 import { AppError } from "@shared/middleware/error.middleware";
 import { getPaymentProvider } from "./utils/getPaymentProvider";
 import { IFullCheckoutSummary } from "@modules/orders/orders.types";
-import { generateOrderNumber } from "@shared/utils/helpers";
+import { calculateEstimatedDelivery, generateOrderNumber } from "@shared/utils/helpers";
 import Order from "@modules/orders/orders.model";
 import Transaction from "@modules/transaction/transaction.model";
 import Vendor from "@modules/vendor/vendor.model";
@@ -81,6 +81,8 @@ class PaymentService {
 
         const vendorData = await Vendor.findById(vendor.vendorId);
 
+        const newEta = calculateEstimatedDelivery(Number(vendor?.calculatedDistanceKm), vendorData?.avgPrepTime || 0);
+
         return Order.create({
           orderNumber,
           checkoutSessionId,
@@ -92,6 +94,7 @@ class PaymentService {
             { status: "pending", timestamp: new Date(), updatedBy: customerId },
           ],
           deliveryAddress: user.toObject().currentAddress,
+          calculatedDistanceKm: Number(vendor.calculatedDistanceKm),
           deliveryLocation: user.toObject().location,
           subtotal: vendor.calculatedSubtotal,
           deliveryFee: vendor.vendorDeliveryFee,
@@ -106,7 +109,8 @@ class PaymentService {
           customerNotes: metadata.noteForVendor || "",
           noteForDriver: metadata.noteForRider || "",
           discount: 0,
-          estimatedDeliveryTime: vendorData?.avgPrepTime.toString(),
+          estimatedDeliveryTime: newEta.eta,
+          totalMinutesToDelivery: newEta.totalMinutes,
           actualDeliveryTime: null,
         });
       }),

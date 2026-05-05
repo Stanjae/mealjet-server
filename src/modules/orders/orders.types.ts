@@ -83,12 +83,14 @@ export type IOrder = {
   deliveryFee: number;
   deliveryProof: string;
   estimatedDeliveryTime: Date | null;
+  totalMinutesToDelivery: number | null;
   actualDeliveryTime: Date | null;
   driverRating: number | null;
   vendorRating: number | null;
   statusHistory: IStatusHistory[];
   items: MJAddToCartItem[];
   deliveryAddress: IAddress;
+  calculatedDistanceKm: number;
   deliveryLocation?: ILocation;
   subtotal: number; // sum of all vendor subtotals
   serviceFee: number;

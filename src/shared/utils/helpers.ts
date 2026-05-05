@@ -227,3 +227,34 @@ export async function generateOrderNumber() {
   
   return `ORD-${timestamp}-${counter}`; // ORD-LXJQ2X-0001
 }
+
+
+export function calculateEstimatedDelivery(distanceKm: number, prepTimeMinutes: number) {
+  const BUFFER_MINUTES = 5; // pickup buffer
+  const AVERAGE_SPEED = 20; // km/h
+
+  const rideTime = Math.ceil((distanceKm / AVERAGE_SPEED) * 60);
+  const totalMinutes = prepTimeMinutes + rideTime + BUFFER_MINUTES;
+
+  const now = new Date();
+  const eta = new Date(now.getTime() + totalMinutes * 60 * 1000);
+
+  return {
+    totalMinutes,
+    eta,                         // exact ETA Date object → store in DB
+    display: `${totalMinutes} mins`,
+    range: `${formatTime(eta)} – ${formatTime(addMinutes(eta, 10))}` // e.g "1:00 PM – 1:10 PM"
+  };
+}
+
+function formatTime(date: Date) {
+  return date.toLocaleTimeString("en-NG", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
+
+function addMinutes(date: Date, mins: number) {
+  return new Date(date.getTime() + mins * 60 * 1000);
+}
