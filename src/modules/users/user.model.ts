@@ -1,28 +1,13 @@
 import { Schema, model, Document, Types } from "mongoose";
 import bcrypt from "bcryptjs";
-import { IAddress, IUser } from "./user.types";
+import { IUser } from "./user.types";
 import { USER_ROLES, USER_STATUSES } from "@shared/constants/auth.constants";
+import { addressSchema } from "@shared/models/shared.models";
 
 export interface IUserDocument extends IUser, Document {
   _id: Types.ObjectId;
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
-
-export const addressSchema = new Schema<IAddress>(
-  {
-    formattedAddress: { type: String, required: true },
-    street: { type: String, required: true },
-    city: { type: String, required: true },
-    state: { type: String, required: true },
-    country: { type: String, required: true },
-    postalCode: { type: String },
-    coordinates: {
-      lat: { type: Number, required: true },
-      lng: { type: Number, required: true },
-    },
-  },
-  { _id: true },
-);
 
 const userSchema = new Schema<IUserDocument>(
   {

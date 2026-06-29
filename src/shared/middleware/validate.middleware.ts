@@ -11,7 +11,11 @@ const normalizeBooleanStrings = (value: unknown): unknown => {
     if (normalizedValue === 'true') return true;
     if (normalizedValue === 'false') return false;
 
-    return value;
+    const looksLikeDate = /^\d{4}-\d{2}-\d{2}(?:[T\s].+)?$/.test(value.trim());
+    if (!looksLikeDate) return value;
+
+    const parsedDate = new Date(value.trim());
+    return Number.isNaN(parsedDate.getTime()) ? value : parsedDate;
   }
 
   if (Array.isArray(value)) {

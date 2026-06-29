@@ -2,7 +2,6 @@ import MenuItem from "@modules/menus/menu.model";
 import { MJAddToCartItem } from "@modules/orders/orders.types";
 import { IUserDocument } from "@modules/users/user.model";
 import Vendor from "@modules/vendor/vendor.model";
-import { ILocation } from "@modules/vendor/vendor.types";
 import { env } from "@shared/config/env.js";
 import { AppError } from "@shared/middleware/error.middleware";
 import { ApplicationCharges } from "@shared/types/enums";
@@ -10,6 +9,8 @@ import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
 import { Request } from "express";
+import crypto from "crypto";
+import { ILocation } from "@shared/models/shared.types";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -258,3 +259,35 @@ function formatTime(date: Date) {
 function addMinutes(date: Date, mins: number) {
   return new Date(date.getTime() + mins * 60 * 1000);
 }
+
+const ENCRYPTION_KEY =  crypto
+  .createHash('sha256')
+  .update(env.BANK_DETAILS_ENCRYPTION_KEY!)
+  .digest(); // always returns exactly 32 bytes!; // must be 32 chars
+const ALGORITHM = "aes-256-cbc";
+
+export const encrypt = (text: string): string => {
+  const iv = crypto.randomBytes(16);
+  const cipher = crypto.createCipheriv(
+    ALGORITHM,
+    Buffer.from(ENCRYPTION_KEY),
+    iv,
+  );
+  const encrypted = Buffer.concat([cipher.update(text), cipher.final()]);
+  return `${iv.toString("hex")}:${encrypted.toString("hex")}`;
+};
+
+export const decrypt = (text: string): string => {
+  const [ivHex, encryptedHex] = text.split(":");
+  const iv = Buffer.from(ivHex, "hex");
+  const encrypted = Buffer.from(encryptedHex, "hex");
+  const decipher = crypto.createDecipheriv(
+    ALGORITHM,
+    Buffer.from(ENCRYPTION_KEY),
+    iv,
+  );
+  return Buffer.concat([
+    decipher.update(encrypted),
+    decipher.final(),
+  ]).toString();
+};

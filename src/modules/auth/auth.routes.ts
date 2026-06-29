@@ -3,6 +3,7 @@ import { body } from 'express-validator';
 import { validate } from '@shared/middleware/validate.middleware.js';
 import { authenticate, isAuthenticatedMiddleware } from '@shared/middleware/auth.middleware';
 import * as authController from './auth.controller';
+import { USER_ROLES } from '@shared/constants/auth.constants';
 
 const router = Router();
 
@@ -11,7 +12,7 @@ router.post('/register',
     body('username').trim().notEmpty().withMessage('Username is required'),
     body('email').isEmail().normalizeEmail().withMessage('Valid email required'),
     body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
-    body('role').isIn(['customer','vendor','driver', 'admin'])
+    body('role').isIn(USER_ROLES)
       .withMessage('Invalid role'),
   ],
   validate,

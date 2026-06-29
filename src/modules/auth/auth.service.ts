@@ -11,6 +11,8 @@ import { sendVerificationEmail } from "@shared/utils/email-util.js";
 import Vendor from "@modules/vendor/vendor.model";
 import { IAddress, IUser } from "@modules/users/user.types";
 import { ALLOWED_LOCATIONS } from "@shared/constants/auth.constants";
+import Rider from "@modules/rider/rider.model";
+import { Request } from "express";
 
 export class AuthService {
   async register(dto: RegisterDto) {
@@ -79,10 +81,14 @@ export class AuthService {
     if (!userId)
       throw new AppError(400, "Invalid or expired verification link");
 
-    const user = await UserModel.findByIdAndUpdate(userId, {
-      emailVerified: true,
-      status: "active",
-    });
+    const user = await UserModel.findByIdAndUpdate(
+      userId,
+      {
+        emailVerified: true,
+        status: "active",
+      },
+      { returnDocument: "after" },
+    ).select("-passwordHash -refreshTokens");
     await redisDel(`email_verify:${token}`);
 
     if (!user) throw new AppError(401, "User not found");
@@ -98,7 +104,7 @@ export class AuthService {
 
   async login(dto: LoginDto): Promise<{ user: object; tokens: AuthTokens }> {
     // Select passwordHash explicitly (it has select:false on schema)
-    let vendorCount = 0;
+    let hasProfile = false;
     const user = await UserModel.findOne({
       email: dto.email.toLowerCase(),
     }).select("+passwordHash +refreshTokens");
@@ -120,7 +126,17 @@ export class AuthService {
     });
 
     if (user.role === "vendor") {
-      vendorCount = await Vendor.countDocuments({ owner: user._id.toString() });
+      hasProfile =
+        (await Vendor.countDocuments({ owner: user._id.toString() })) > 0;
+    }
+
+    if (user.role === "rider") {
+      hasProfile =
+        (await Rider.findOne({ owner: user._id.toString(), status: "active" })) !== null;
+    }
+
+    if (user.role === "customer") {
+      hasProfile = true; // Customers don't have separate profiles
     }
 
     // Store refresh token hash (never store plain token in DB)
@@ -138,7 +154,7 @@ export class AuthService {
     const userObj = user.toObject();
     const { passwordHash, refreshTokens, _id, ...safeUser } = userObj;
 
-    return { user: { ...safeUser, id: _id, vendorCount }, tokens };
+    return { user: { ...safeUser, id: _id, hasProfile }, tokens };
   }
 
   async refresh(refreshToken: string): Promise<AuthTokens> {
@@ -253,28 +269,18 @@ export class AuthService {
     };
   }
 
-
-    async updateUserCurrentAddress(
-    user: IUserDocument,
-    updates: IAddress
-  ) {
+  async updateUserCurrentAddress(user: IUserDocument, updates: IAddress) {
     const existingUser = user.toObject();
 
     const updateData: Partial<IUser> = {};
     if (updates) {
       if (existingUser.currentAddress._id.toString() === updates?._id) {
-        throw new AppError(
-          409,
-          "User location is already set",
-        );
+        throw new AppError(409, "User location is already set");
       }
-      updateData.currentAddress = updates
+      updateData.currentAddress = updates;
       updateData.location = {
         type: "Point",
-        coordinates: [
-          updates.coordinates.lng,
-          updates.coordinates.lat,
-        ],
+        coordinates: [updates.coordinates.lng, updates.coordinates.lat],
       };
     }
     const updatedUser = await UserModel.findByIdAndUpdate(
@@ -289,6 +295,29 @@ export class AuthService {
       message: `Current address updated successfully`,
       user: updatedUser,
     };
+  }
+
+  async isAuthenticated(req: Request) {
+    let hasProfile = false;
+    const user = req?.user?.toObject();
+
+    if (user.role === "vendor") {
+      hasProfile =
+        (await Vendor.countDocuments({ owner: user._id.toString(), status: "active" })) > 0;
+    }
+
+    if (user.role === "rider") {
+      const profile =
+        (await Rider.findOne({ owner: user._id.toString(), status: "active" })) !== null;
+      hasProfile = profile ? true : false;
+    }
+
+    if (user.role === "customer") {
+      hasProfile = true; // Customers don't have separate profiles
+    }
+
+    const { passwordHash, refreshTokens, _id, ...safeUser } = user;
+    return { userObj: { ...safeUser, id: _id, hasProfile } };
   }
 }
 

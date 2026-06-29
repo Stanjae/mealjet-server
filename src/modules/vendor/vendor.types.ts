@@ -1,4 +1,5 @@
 import { IAddress } from "@modules/users/user.types";
+import { IBankDetails, ILocation } from "@shared/models/shared.types";
 import mongoose, { Document } from "mongoose";
 
 export interface IOpeningHour {
@@ -6,19 +7,6 @@ export interface IOpeningHour {
   openTime: string; // "08:00"
   closeTime: string; // "22:00"
   isClosed: boolean;
-}
-
-
-export interface IBankDetails {
-  bankName: string;
-  bankCode?: string;
-  accountNumber: string;
-  accountName: string;
-}
-
-export interface ILocation {
-  type: "Point";
-  coordinates: [number, number]; // [lng, lat]
 }
 
 export interface IVendor extends Document {

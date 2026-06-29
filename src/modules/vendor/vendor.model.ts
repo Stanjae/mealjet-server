@@ -1,46 +1,9 @@
 import mongoose, { Schema } from "mongoose";
-import crypto from "crypto";
-import { IBankDetails, IOpeningHour, IVendor } from "./vendor.types";
-import { env } from "@shared/config/env";
-import { newDayJs } from "@shared/utils/helpers";
-import { addressSchema } from "@modules/users/user.model";
+import { IOpeningHour, IVendor } from "./vendor.types";
+import { decrypt, encrypt} from "@shared/utils/helpers";
+import { addressSchema, bankDetailsSchema } from "@shared/models/shared.models";
+import { IBankDetails } from "@shared/models/shared.types";
 
-
-const ENCRYPTION_KEY =  crypto
-  .createHash('sha256')
-  .update(env.BANK_DETAILS_ENCRYPTION_KEY!)
-  .digest(); // always returns exactly 32 bytes!; // must be 32 chars
-const ALGORITHM = "aes-256-cbc";
-
-const encrypt = (text: string): string => {
-  const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipheriv(
-    ALGORITHM,
-    Buffer.from(ENCRYPTION_KEY),
-    iv,
-  );
-  const encrypted = Buffer.concat([cipher.update(text), cipher.final()]);
-  return `${iv.toString("hex")}:${encrypted.toString("hex")}`;
-};
-
-const decrypt = (text: string): string => {
-  const [ivHex, encryptedHex] = text.split(":");
-  const iv = Buffer.from(ivHex, "hex");
-  const encrypted = Buffer.from(encryptedHex, "hex");
-  const decipher = crypto.createDecipheriv(
-    ALGORITHM,
-    Buffer.from(ENCRYPTION_KEY),
-    iv,
-  );
-  return Buffer.concat([
-    decipher.update(encrypted),
-    decipher.final(),
-  ]).toString();
-};
-
-// ─────────────────────────────────────────
-// Schema
-// ─────────────────────────────────────────
 
 const openingHourSchema = new Schema<IOpeningHour>(
   {
@@ -48,17 +11,6 @@ const openingHourSchema = new Schema<IOpeningHour>(
     openTime: { type: String, default: "08:00" },
     closeTime: { type: String, default: "22:00" },
     isClosed: { type: Boolean, default: false },
-  },
-  { _id: false },
-);
-
-
-const bankDetailsSchema = new Schema<IBankDetails>(
-  {
-    bankName: { type: String, required: true },
-    bankCode: { type: String },
-    accountNumber: { type: String, required: true },
-    accountName: { type: String, required: true },
   },
   { _id: false },
 );
@@ -231,20 +183,37 @@ vendorSchema.index({ owner: 1, status: 1 }); // vendor dashboard queries
 // Encrypt bank details before saving
 // ─────────────────────────────────────────
 
-vendorSchema.pre("save", function (next) {
-  if (this.isModified("bankDetails.accountNumber")) {
-    this.bankDetails.accountNumber = encrypt(this.bankDetails.accountNumber);
-  }
-});
+vendorSchema.pre<IVendor>(
+  "save",
+  function (this: IVendor): void {
+    try {
+      if (this.isModified("bankDetails")) {
+        const bd = this.bankDetails;
+
+        if (bd.accountNumber) bd.accountNumber = encrypt(bd.accountNumber);
+        if (bd.bankName) bd.bankName = encrypt(bd.bankName);
+        if (bd.accountName) bd.accountName = encrypt(bd.accountName);
+
+        // Explicitly mark the field as modified
+        this.markModified("bankDetails");
+      }
+    } catch (error: any) {
+      throw new Error(`Failed to encrypt bank details: ${error?.message}`);
+    }
+  },
+);
 
 // ─────────────────────────────────────────
 // Decrypt bank details when reading
 // ─────────────────────────────────────────
 
 vendorSchema.methods.getBankDetails = function (): IBankDetails {
+  const bd = this.bankDetails.toObject();
   return {
-    ...this.bankDetails.toObject(),
-    accountNumber: decrypt(this.bankDetails.accountNumber),
+    ...bd,
+    accountNumber: bd.accountNumber ? decrypt(bd.accountNumber) : "",
+    bankName: bd.bankName ? decrypt(bd.bankName) : "",
+    accountName: bd.accountName ? decrypt(bd.accountName) : "",
   };
 };
 
@@ -260,7 +229,7 @@ vendorSchema.pre("save", function (next) {
         .trim()
         .replace(/[^a-z0-9\s-]/g, "")
         .replace(/\s+/g, "-")
-        .replace(/-+/g, "-") + newDayJs().toISOString()
+        .replace(/-+/g, "-") + "-" + Math.random().toString(36).slice(2, 7);
   }
 });
 

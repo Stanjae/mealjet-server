@@ -1,0 +1,46 @@
+import { IUserDocument } from "@modules/users/user.model";
+import { IVendorReqFiles } from "@modules/vendor/vendor.types";
+import { FullRiderData } from "@shared/schemas/rider.schema";
+import { uploadToCloudinary } from "@shared/utils/cloudinary.service";
+import Rider from "./rider.model";
+
+export class RiderService {
+  async createRider(
+    user: IUserDocument,
+    data: FullRiderData,
+    files: IVendorReqFiles,
+  ) {
+    const newUser = user.toObject();
+
+    const [vehicleDocument, profilePicture, proofOfId] = await Promise.all([
+      uploadToCloudinary(files.vehicle_document[0], "mealjet/riders/documents"),
+      uploadToCloudinary(files.profile_picture[0], "mealjet/riders/profile"),
+      uploadToCloudinary(
+        files.proof_of_identification[0],
+        "mealjet/riders/documents",
+      ),
+    ]);
+
+    const rider = await Rider.create({
+      ...data,
+      owner: newUser._id,
+      profile_picture: profilePicture.url,
+      proof_of_identification: proofOfId.url,
+      vehicle_document: vehicleDocument.url,
+    });
+
+    return { message: "Rider created successfully" };
+  }
+
+  async isRiderApproved(userId: string) {
+    const rider = await Rider.findOne({ owner: userId }).select("status");
+
+    if (!rider) {
+      return { status: null };
+    }
+
+    return { status: rider?.status };
+  }
+}
+
+export const riderService = new RiderService();

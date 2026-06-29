@@ -1,8 +1,9 @@
 // src/modules/users/user.types.ts
 
-import { ILocation } from "@modules/vendor/vendor.types";
+import { USER_ROLES } from "@shared/constants/auth.constants";
+import { ILocation } from "@shared/models/shared.types";
 
-export type UserRole = "customer" | "vendor" | "driver" | "admin" | "support";
+export type UserRole = typeof USER_ROLES[number];
 export type UserStatus =
   | "active"
   | "suspended"

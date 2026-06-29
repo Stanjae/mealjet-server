@@ -60,11 +60,11 @@ export const logout = asyncHandler(async (req: Request, res: Response) => {
 
 export const isAuthenticated = asyncHandler(
   async (req: Request, res: Response) => {
-    const userObj = req?.user?.toObject();
-    const { passwordHash, refreshTokens, _id, ...safeUser } = userObj;
+    const { userObj } = await authService.isAuthenticated(req);
+
     ApiResponse.success(
       res,
-      { isAuthenticated: true, user: { ...safeUser, id: _id } },
+      { isAuthenticated: true, user: userObj },
       "User is authenticated",
     );
   },
@@ -97,7 +97,7 @@ export const deleteUserAddress = asyncHandler(
   async (req: Request, res: Response) => {
     const result = await authService.deleteUserAddress(
       req?.user as IUserDocument,
-      req.params.addressId as string
+      req.params.addressId as string,
     );
     const user = result.user.toObject();
     ApiResponse.success(res, { user }, result.message);

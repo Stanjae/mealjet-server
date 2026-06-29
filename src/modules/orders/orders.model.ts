@@ -1,4 +1,4 @@
-import { addressSchema } from "@modules/users/user.model";
+
 import { USER_ROLES } from "@shared/constants/auth.constants";
 import {
   orderTypes,
@@ -8,6 +8,7 @@ import {
 } from "@shared/constants/orders.constants";
 import { model, Schema } from "mongoose";
 import { IOrder } from "./orders.types";
+import { addressSchema } from "@shared/models/shared.models";
 
 const statusHistorySchema = new Schema(
   {
