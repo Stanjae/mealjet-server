@@ -20,6 +20,8 @@ const userSchema = new Schema<IUserDocument>(
       index: true,
     },
     phone: { type: String, sparse: true },
+    firstName: { type: String, trim: true },
+    lastName: { type: String, trim: true },
     passwordHash: { type: String, select: false }, // Never returned by default
     role: {
       type: String,

@@ -29,11 +29,96 @@ export const getOrderDetails = asyncHandler(
       checkoutId as string,
     );
 
-    ApiResponse.success(
-      res,
-      result,
-      "Order details retrieved successfully",
-    );
+    ApiResponse.success(res, result, "Order details retrieved successfully");
   },
 );
 
+export const getVendorOrders = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { vendorId } = req.params;
+    const result = await orderService.getVendorOrders(
+      req.user as IUserDocument,
+      vendorId as string,
+    );
+
+    ApiResponse.success(res, result, "Vendor orders retrieved successfully");
+  },
+);
+
+export const updateOrderStatus = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { orderId } = req.params;
+
+    console.log(
+      "Received request to update order status:",
+      req.body,
+      "for order ID:",
+      orderId,
+    );
+
+    const result = await orderService.updateOrderStatus(
+      req,
+      req.user as IUserDocument,
+      orderId as string,
+      req.body,
+    );
+
+    ApiResponse.success(res, result, "Order status updated successfully");
+  },
+);
+
+export const vendorRetryDispatch = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { orderId } = req.params;
+
+    const result = await orderService.vendorRetryDispatch(
+      req,
+      req.user as IUserDocument,
+      orderId as string,
+    );
+
+    ApiResponse.success(res, result, "Dispatch retry started successfully");
+  },
+);
+
+export const adminProcessRefund = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { orderId } = req.params;
+
+    const result = await orderService.adminProcessRefund(
+      req,
+      req.user as IUserDocument,
+      orderId as string,
+      req.body,
+    );
+
+    ApiResponse.success(res, result, result.message);
+  },
+);
+
+export const riderAcceptDispatch = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { orderId } = req.params;
+    const result = await orderService.riderAcceptDispatch(
+      req,
+      req.user as IUserDocument,
+      orderId as string,
+    );
+
+    ApiResponse.success(res, result, "Order accepted successfully");
+  },
+);
+
+export const riderUpdateDeliveryStatus = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { orderId } = req.params;
+    const result = await orderService.riderUpdateDeliveryStatus(
+      req,
+      req.user as IUserDocument,
+      orderId as string,
+      req.body,
+    );
+
+    ApiResponse.success(res, result, "Delivery status updated successfully");
+  },
+);

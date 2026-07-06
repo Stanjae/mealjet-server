@@ -71,6 +71,11 @@ export function createApp(): Application {
     );
   }
 
+  app.use((_, res, next) => {
+  res.set('Cache-Control', 'no-store');
+  next();
+});
+
   // ── Health check ─────────────────────────────────────────────
   app.get("/health", (_req, res) => {
     res.json({ status: "OK", timestamp: new Date().toISOString() });

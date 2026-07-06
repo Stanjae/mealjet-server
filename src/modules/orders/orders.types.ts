@@ -1,12 +1,13 @@
 import { IAddon } from "@modules/menus/menu.types";
 import { IAddress, UserRole } from "@modules/users/user.types";
-import { ILocation } from "@modules/vendor/vendor.types";
 import {
   orderTypes,
   PAYMENT_METHODS,
   PAYMENT_STATUSES,
+  REFUND_STATUSES,
   statusHistoryStates,
 } from "@shared/constants/orders.constants";
+import { ILocation } from "@shared/models/shared.types";
 import { Types } from "mongoose";
 
 export type MJAddToCartItem = {
@@ -52,10 +53,10 @@ export type IFullCheckoutSummary = {
   checkoutSessionId: string;
 };
 export type IStatusHistory = {
-  status: (typeof statusHistoryStates)[number];
+  status: statusHistoryStates;
   timestamp: Date;
   updatedBy: Types.ObjectId;
-  note: string;
+  updatedByUserRole?: UserRole; // optional, user role of who triggered the change
 };
 
 export type IItemSnapshot = {
@@ -79,8 +80,10 @@ export type IOrder = {
   customer: Types.ObjectId;
   vendor: Types.ObjectId;
   driver: Types.ObjectId;
-  status: (typeof statusHistoryStates)[number];
+  status: statusHistoryStates;
   deliveryFee: number;
+  prepTimeEstimate: number | null;
+  actualPrepTime: number | null;
   deliveryProof: string;
   estimatedDeliveryTime: Date | null;
   totalMinutesToDelivery: number | null;
@@ -100,11 +103,34 @@ export type IOrder = {
   paymentStatus: (typeof PAYMENT_STATUSES)[number];
   paymentReference: string; // some payments might not have this
   refundAmount?: number;
+  refundStatus?: (typeof REFUND_STATUSES)[number];
+  refundReference?: string | null;
+  refundProcessedAt?: Date | null;
+  refundFailureReason?: string | null;
   promoCode?: string;
   customerNotes?: string | null;
   noteForDriver?: string | null;
   orderType: (typeof orderTypes)[number];
   currency: string;
   cancelledBy?: UserRole;
+  cancelledByUserId?: string;
   cancellationReason?: string;
+};
+
+
+export type TUpdateOrderStatusPayload = {
+  status: statusHistoryStates;
+  statusTimeline: IStatusHistory[];
+  cancelledBy?: UserRole;
+  cancellationReason?: string | null;
+  actualPrepTime?: number;
+  prepTimeEstimate?: number;
+  cancelledByUserId?: string;
+  
+};
+
+export type TProcessRefundPayload = {
+  status: "success" | "failed";
+  refundReference?: string;
+  failureReason?: string;
 };

@@ -13,16 +13,6 @@ import { IBankDetails } from "@shared/models/shared.types";
 
 const RiderSchema = new Schema<TRider>(
   {
-    first_name: {
-      type: String,
-      trim: true,
-      required: [true, "First name is required"],
-    },
-    last_name: {
-      type: String,
-      trim: true,
-      required: [true, "Last name is required"],
-    },
     owner: {
       type: Schema.Types.ObjectId,
       ref: "User",
@@ -168,7 +158,7 @@ RiderSchema.index({ currentLocation: "2dsphere" });
 // Dispatch query — nearby active + online riders
 RiderSchema.index({
   status: 1,
-  availabilityStatus: 1,
+  availability_status: 1,
   currentLocation: "2dsphere",
 });
 
@@ -269,7 +259,7 @@ RiderSchema.statics.findNearby = function (
   return (this as IRiderModel)
     .find({
       status: RiderStatus.ACTIVE,
-      availabilityStatus: AvailabilityStatus.ONLINE,
+      availability_status: AvailabilityStatus.ONLINE,
       activeDelivery: null,
       currentLocation: {
         $nearSphere: {
@@ -278,7 +268,7 @@ RiderSchema.statics.findNearby = function (
         },
       },
     })
-    .populate("user", "firstName lastName phone avatar");
+    .populate("owner", "firstName lastName phone avatar");
 };
 
 // ─── Model — guard against hot-reload re-registration ────────────────────────

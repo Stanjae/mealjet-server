@@ -1,4 +1,4 @@
-import { IUserDocument } from "@modules/users/user.model";
+import { IUserDocument, UserModel } from "@modules/users/user.model";
 import { IVendorReqFiles } from "@modules/vendor/vendor.types";
 import { FullRiderData } from "@shared/schemas/rider.schema";
 import { uploadToCloudinary } from "@shared/utils/cloudinary.service";
@@ -12,6 +12,8 @@ export class RiderService {
   ) {
     const newUser = user.toObject();
 
+    const {first_name, last_name, phone, ...riderData} = data
+
     const [vehicleDocument, profilePicture, proofOfId] = await Promise.all([
       uploadToCloudinary(files.vehicle_document[0], "mealjet/riders/documents"),
       uploadToCloudinary(files.profile_picture[0], "mealjet/riders/profile"),
@@ -21,12 +23,18 @@ export class RiderService {
       ),
     ]);
 
-    const rider = await Rider.create({
-      ...data,
+    await Rider.create({
+      ...riderData,
       owner: newUser._id,
       profile_picture: profilePicture.url,
       proof_of_identification: proofOfId.url,
       vehicle_document: vehicleDocument.url,
+    });
+
+    await UserModel.findByIdAndUpdate(newUser._id, {
+      firstName: first_name,
+      lastName: last_name,
+      phone,
     });
 
     return { message: "Rider created successfully" };

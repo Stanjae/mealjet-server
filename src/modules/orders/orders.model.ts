@@ -1,9 +1,9 @@
-
 import { USER_ROLES } from "@shared/constants/auth.constants";
 import {
   orderTypes,
   PAYMENT_METHODS,
   PAYMENT_STATUSES,
+  REFUND_STATUSES,
   statusHistoryStates,
 } from "@shared/constants/orders.constants";
 import { model, Schema } from "mongoose";
@@ -12,10 +12,10 @@ import { addressSchema } from "@shared/models/shared.models";
 
 const statusHistorySchema = new Schema(
   {
-    status: { type: String, enum: statusHistoryStates },
+    status: { type: String, enum: Object.values(statusHistoryStates) },
     timestamp: { type: Date, default: Date.now },
-    updatedBy: { type: Schema.Types.ObjectId, ref: "User" }, // who triggered the change
-    note: { type: String }, // optional e.g "rider called customer"
+    updatedBy: { type: String }, // who triggered the change
+    updatedByUserRole: { type: String, enum: USER_ROLES }, // optional, user role of who triggered the change
   },
   { _id: false },
 );
@@ -26,8 +26,12 @@ const orderSchema = new Schema<IOrder>(
     customer: { type: Schema.Types.ObjectId, ref: "User" },
     checkoutSessionId: { type: String, index: true },
     vendor: { type: Schema.Types.ObjectId, ref: "Vendor" },
-    driver: { type: Schema.Types.ObjectId, ref: "User", default: null },
-    status: { type: String, enum: statusHistoryStates, default: "pending" },
+    driver: { type: Schema.Types.ObjectId, ref: "Rider", default: null },
+    status: {
+      type: String,
+      enum: Object.values(statusHistoryStates),
+      default: statusHistoryStates.pending,
+    },
     items: [{ type: Schema.Types.Mixed }],
     statusHistory: [statusHistorySchema],
     subtotal: {
@@ -40,6 +44,8 @@ const orderSchema = new Schema<IOrder>(
       min: 0,
       default: null,
     },
+    prepTimeEstimate: { type: Number, min: 0, default: null },
+    actualPrepTime: { type: Number, min: 0, default: null },
     estimatedDeliveryTime: { type: Date, default: null },
     totalMinutesToDelivery: { type: Number, default: null }, // in minutes
     actualDeliveryTime: { type: Date, default: null },
@@ -74,6 +80,15 @@ const orderSchema = new Schema<IOrder>(
     },
     paymentReference: { type: String, unique: true, sparse: true }, // some payments might not have this
     refundAmount: { type: Number, default: 0, optional: true },
+    refundStatus: {
+      type: String,
+      enum: REFUND_STATUSES,
+      default: "none",
+      index: true,
+    },
+    refundReference: { type: String, default: null },
+    refundProcessedAt: { type: Date, default: null },
+    refundFailureReason: { type: String, default: null },
 
     promoCode: { type: String, default: null },
     customerNotes: { type: String, default: null },
@@ -85,6 +100,7 @@ const orderSchema = new Schema<IOrder>(
       type: String,
       enum: USER_ROLES,
     },
+    cancelledByUserId: { type: String, default: null }, // optional, user role of who triggered the change
     cancellationReason: { type: String, default: null },
   },
   { timestamps: true },

@@ -29,6 +29,8 @@ export interface IAddress {
 export interface IUser {
   username: string;
   email: string;
+  firstName?: string;
+  lastName?: string;
   phone?: string;
   passwordHash?: string;
   role: UserRole;

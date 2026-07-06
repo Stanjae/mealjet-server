@@ -11,6 +11,7 @@ import { calculateEstimatedDelivery, generateOrderNumber } from "@shared/utils/h
 import Order from "@modules/orders/orders.model";
 import Transaction from "@modules/transaction/transaction.model";
 import Vendor from "@modules/vendor/vendor.model";
+import MenuItem from "@modules/menus/menu.model";
 import { emitToUser } from "@shared/utils/socket.io";
 import { Request } from "express";
 
@@ -81,7 +82,47 @@ class PaymentService {
 
         const vendorData = await Vendor.findById(vendor.vendorId);
 
-        const newEta = calculateEstimatedDelivery(Number(vendor?.calculatedDistanceKm), vendorData?.avgPrepTime || 0);
+        const vendorAvgPrep = vendorData?.avgPrepTime ?? 15;
+
+        const menuIds = vendor.items.map((item) => item.id);
+        const menuDocs = await MenuItem.find({ _id: { $in: menuIds } })
+          .select("_id prepTime")
+          .lean();
+
+        const prepByMenuId = new Map(
+          menuDocs.map((menu) => [menu._id.toString(), menu.prepTime]),
+        );
+
+        const totalQty =
+          vendor.items.reduce((acc, item) => acc + Number(item.quantity || 0), 0) ||
+          1;
+
+        const weightedItemPrep =
+          vendor.items.reduce((acc, item) => {
+            const itemPrep = prepByMenuId.get(item.id) ?? vendorAvgPrep;
+            return acc + itemPrep * Number(item.quantity || 1);
+          }, 0) / totalQty;
+
+        const maxItemPrep = vendor.items.reduce((max, item) => {
+          const itemPrep = prepByMenuId.get(item.id) ?? vendorAvgPrep;
+          return Math.max(max, itemPrep);
+        }, 0);
+
+        const complexityPenalty = Math.max(vendor.items.length - 1, 0) * 1.5;
+
+        const orderPrepMins = Math.max(
+          vendorAvgPrep,
+          Math.round(
+            0.6 * weightedItemPrep +
+              0.4 * maxItemPrep +
+              complexityPenalty,
+          ),
+        );
+
+        const newEta = calculateEstimatedDelivery(
+          Number(vendor?.calculatedDistanceKm),
+          orderPrepMins,
+        );
 
         return Order.create({
           orderNumber,
@@ -91,13 +132,14 @@ class PaymentService {
           items: vendor.items,
           status: "pending",
           statusHistory: [
-            { status: "pending", timestamp: new Date(), updatedBy: customerId },
+            { status: "pending", timestamp: new Date(), updatedBy: customerId, updatedByUserRole:'customer' },
           ],
           deliveryAddress: user.toObject().currentAddress,
           calculatedDistanceKm: Number(vendor.calculatedDistanceKm),
           deliveryLocation: user.toObject().location,
           subtotal: vendor.calculatedSubtotal,
           deliveryFee: vendor.vendorDeliveryFee,
+          prepTimeEstimate: orderPrepMins,
           serviceFee: vendor.serviceCharge,
           total: vendor.total,
           paymentStatus: "paid",

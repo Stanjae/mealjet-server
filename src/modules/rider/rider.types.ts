@@ -17,8 +17,6 @@ export type TAvailabilityStatus = AvailabilityStatus;
 export type TVehicleType = VehicleType;
 
 export interface TRider {
-  first_name: string | null;
-  last_name: string | null;
   owner: Types.ObjectId;
   status: TDriverStatus;
   availability_status: TAvailabilityStatus;
