@@ -55,30 +55,44 @@ export class VendorService {
 
   async getVendorProfiles(userId: string) {
     const vendors = await Vendor.find({ owner: userId })
-      .select("-bankDetails")
-      .lean();
+      .select("-bankDetails");
+
+    const serializedVendors = vendors.map((vendor) =>
+      sanitizeToId(vendor.toObject({ virtuals: true })),
+    );
+
     return {
       message: "Vendor profiles fetched successfully",
-      vendors: vendors.map(sanitizeToId),
+      vendors: serializedVendors,
     };
   }
 
   async getAllVendors() {
-    const vendors = await Vendor.find().select("-bankDetails").lean();
+    const vendors = await Vendor.find({ status: "active" }).select("-bankDetails");
+
+    const serializedVendors = vendors.map((vendor) =>
+      sanitizeToId(vendor.toObject({ virtuals: true })),
+    );
+
     return {
       message: "All vendors fetched successfully",
-      vendors: vendors.map(sanitizeToId),
+      vendors: serializedVendors,
     };
   }
 
   async getVendorProfile(vendorSlug: string) {
-    const vendor = await Vendor.findOne({ slug: vendorSlug }).select("-bankDetails").lean();
+    const vendor = await Vendor.findOne({ slug: vendorSlug })
+      .select("-bankDetails");
+
     if (!vendor) {
       throw new AppError(404, "Vendor not found");
     }
+
+    const serializedVendor = sanitizeToId(vendor.toObject({ virtuals: true }));
+
     return {
       message: "Vendor profile fetched successfully",
-      vendor: sanitizeToId(vendor),
+      vendor: serializedVendor,
     };
   }
 }

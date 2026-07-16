@@ -35,26 +35,41 @@ const MANUAL_RETRY_COOLDOWN_SECONDS = 60;
 const MANUAL_RETRY_WINDOW_SECONDS = 30 * 60;
 const MANUAL_RETRY_MAX_PER_WINDOW = 3;
 
-const VENDOR_ALLOWED_TRANSITIONS: Partial<Record<statusHistoryStates, statusHistoryStates[]>> = {
-  [statusHistoryStates.pending]: [statusHistoryStates.preparing, statusHistoryStates.cancelled],
+const VENDOR_ALLOWED_TRANSITIONS: Partial<
+  Record<statusHistoryStates, statusHistoryStates[]>
+> = {
+  [statusHistoryStates.pending]: [
+    statusHistoryStates.preparing,
+    statusHistoryStates.cancelled,
+  ],
   [statusHistoryStates.confirmed]: [
     statusHistoryStates.preparing,
     statusHistoryStates.cancelled,
   ],
-  [statusHistoryStates.preparing]: [statusHistoryStates.ready, statusHistoryStates.cancelled],
+  [statusHistoryStates.preparing]: [
+    statusHistoryStates.ready,
+    statusHistoryStates.cancelled,
+  ],
   [statusHistoryStates.ready]: [statusHistoryStates.cancelled],
 };
 
-const RIDER_ALLOWED_TRANSITIONS: Partial<Record<statusHistoryStates, statusHistoryStates[]>> = {
+const RIDER_ALLOWED_TRANSITIONS: Partial<
+  Record<statusHistoryStates, statusHistoryStates[]>
+> = {
   [statusHistoryStates.assigned]: [statusHistoryStates.picked_up],
   [statusHistoryStates.picked_up]: [statusHistoryStates.on_the_way],
   [statusHistoryStates.on_the_way]: [statusHistoryStates.delivered],
 };
 
 class OrderService {
-  private async queueRefundForCancelledOrder(req: Request, order: any, user: IUserDocument) {
+  private async queueRefundForCancelledOrder(
+    req: Request,
+    order: any,
+    user: IUserDocument,
+  ) {
     if (order.paymentStatus !== PAYMENT_STATUSES[1]) return; // paid
-    if (order.refundStatus === "pending" || order.refundStatus === "success") return;
+    if (order.refundStatus === "pending" || order.refundStatus === "success")
+      return;
 
     const existingRefund = await Transaction.findOne({
       order: order._id,
@@ -143,7 +158,9 @@ class OrderService {
       10 * 60,
     );
 
-    const vendorOwnerId = await this.resolveVendorOwnerId(order?.vendor?.toString());
+    const vendorOwnerId = await this.resolveVendorOwnerId(
+      order?.vendor?.toString(),
+    );
     const customerId = order?.customer?.toString();
 
     if (vendorOwnerId) {
@@ -190,7 +207,9 @@ class OrderService {
   }
 
   private async getEligibleRiders(orderId: string, radiusMetres: number) {
-    const order = await Order.findById(orderId).select("deliveryLocation").lean();
+    const order = await Order.findById(orderId)
+      .select("deliveryLocation")
+      .lean();
     if (!order) throw new AppError(404, "Order not found");
 
     const coordinates = order.deliveryLocation?.coordinates;
@@ -224,7 +243,12 @@ class OrderService {
         await this.runDispatchRound(req, orderId, nextRound);
         return;
       }
-      await redis.set(`dispatch:order:${orderId}:exhausted`, "1", "EX", 60 * 60);
+      await redis.set(
+        `dispatch:order:${orderId}:exhausted`,
+        "1",
+        "EX",
+        60 * 60,
+      );
       await this.notifyDispatchExhausted(req, order);
       return;
     }
@@ -235,7 +259,10 @@ class OrderService {
 
     await redis.set(
       `dispatch:order:${orderId}:round`,
-      JSON.stringify({ round, riderIds: candidates.map((r: any) => r._id.toString()) }),
+      JSON.stringify({
+        round,
+        riderIds: candidates.map((r: any) => r._id.toString()),
+      }),
       "EX",
       10 * 60,
     );
@@ -257,7 +284,9 @@ class OrderService {
     );
 
     setTimeout(async () => {
-      const fresh = await Order.findById(orderId).select("status driver").lean();
+      const fresh = await Order.findById(orderId)
+        .select("status driver")
+        .lean();
       if (!fresh) return;
       if (fresh.status !== statusHistoryStates.ready || fresh.driver) return;
 
@@ -267,7 +296,12 @@ class OrderService {
         return;
       }
 
-      await redis.set(`dispatch:order:${orderId}:exhausted`, "1", "EX", 60 * 60);
+      await redis.set(
+        `dispatch:order:${orderId}:exhausted`,
+        "1",
+        "EX",
+        60 * 60,
+      );
       await this.notifyDispatchExhausted(req, order);
     }, config.waitMs);
   }
@@ -277,7 +311,11 @@ class OrderService {
     await this.runDispatchRound(req, orderId, 0);
   }
 
-  async vendorRetryDispatch(req: Request, user: IUserDocument, orderId: string) {
+  async vendorRetryDispatch(
+    req: Request,
+    user: IUserDocument,
+    orderId: string,
+  ) {
     const order = await Order.findById(orderId)
       .select("status driver vendor orderNumber")
       .lean();
@@ -301,7 +339,10 @@ class OrderService {
       .lean();
 
     if (!vendor) {
-      throw new AppError(403, "You are not allowed to retry this order dispatch");
+      throw new AppError(
+        403,
+        "You are not allowed to retry this order dispatch",
+      );
     }
 
     const cooldownKey = `dispatch:order:${orderId}:manual-retry-cooldown`;
@@ -355,7 +396,10 @@ class OrderService {
     user: IUserDocument,
     orderData: MJAddToCartItem[],
   ) {
-    await validateCart(orderData);
+    const { errors: cartErrors } = await validateCart(orderData);
+    if (cartErrors.length) {
+      throw new AppError(422, cartErrors.join(", "));
+    }
 
     // 2. Build summary with fees per vendor
     const summary = await buildCheckoutSummary(orderData, user);
@@ -423,6 +467,24 @@ class OrderService {
       paymentType,
       deliveryAddress,
       checkoutId,
+    };
+  }
+
+  async getOrderDetailsById(user: IUserDocument, orderId: string) {
+    const order = await Order.findById({
+      _id: orderId,
+      customer: user._id.toString(),
+    }).populate("vendor", "name logo slug");
+
+    if (!order) {
+      throw new AppError(404, "Order not found");
+    }
+
+    const sanitizedOrder = sanitizeToId(order);
+
+    return {
+      order: sanitizedOrder,
+      message: "Order details retrieved successfully",
     };
   }
 
@@ -499,8 +561,6 @@ class OrderService {
       throw new AppError(404, "Order not found");
     }
 
-    console.log("Updating order status:", payload, "for order ID:", orderId);
-
     const currentStatus = order.status as statusHistoryStates;
     const nextStatus = payload.status;
     const vendorAllowedNext = VENDOR_ALLOWED_TRANSITIONS[currentStatus] || [];
@@ -529,7 +589,7 @@ class OrderService {
     if (payload.prepTimeEstimate !== undefined) {
       order.prepTimeEstimate = payload.prepTimeEstimate;
     }
-    if(payload.cancelledByUserId) {
+    if (payload.cancelledByUserId) {
       order.cancelledByUserId = payload.cancelledByUserId;
     }
 
@@ -555,6 +615,14 @@ class OrderService {
       await redis.del(`dispatch:order:${orderId}:progress`);
       await redis.del(`dispatch:order:${orderId}:exhausted`);
       await this.queueRefundForCancelledOrder(req, order, user);
+    }
+
+    const customerId = order.customer?.toString();
+    if (customerId) {
+      emitToUser(req, customerId, "order_update_to_customer", {
+        status: payload.status,
+        orderId: order._id,
+      });
     }
 
     return { message: "Order status updated successfully", order };
@@ -649,13 +717,18 @@ class OrderService {
     await refundDoc.save();
 
     order.refundStatus = "failed";
-    order.refundFailureReason = payload.failureReason || "Refund processing failed";
+    order.refundFailureReason =
+      payload.failureReason || "Refund processing failed";
     await order.save();
 
     return { message: "Refund marked as failed", order };
   }
 
-  async riderAcceptDispatch(req: Request, user: IUserDocument, orderId: string) {
+  async riderAcceptDispatch(
+    req: Request,
+    user: IUserDocument,
+    orderId: string,
+  ) {
     const rider = await Rider.findOne({ owner: user._id.toString() }).lean();
     if (!rider) throw new AppError(404, "Rider profile not found");
 
@@ -783,7 +856,7 @@ class OrderService {
 
     const populated = await Order.findById(order._id)
       .populate("customer", "firstName lastName")
-      .populate("vendor", "name owner")
+      .populate("vendor", "name owner slug")
       .lean();
 
     const customerId = (populated?.customer as any)?._id?.toString();
@@ -805,10 +878,151 @@ class OrderService {
       });
     }
 
-    return { message: "Delivery status updated successfully", order: populated };
+    return {
+      message: "Delivery status updated successfully",
+      order: populated,
+    };
+  }
+
+  //get customer orders
+  async getCustomerOrders(
+    user: IUserDocument,
+    query: Record<string, string | undefined>,
+  ) {
+    const { search, category } = query;
+
+    const validCategories = {
+      ongoing: [
+        statusHistoryStates.assigned,
+        statusHistoryStates.picked_up,
+        statusHistoryStates.on_the_way,
+        statusHistoryStates.pending,
+        statusHistoryStates.confirmed,
+        statusHistoryStates.preparing,
+        statusHistoryStates.ready,
+      ],
+      completed: [
+        statusHistoryStates.delivered,
+        statusHistoryStates.cancelled,
+        statusHistoryStates.refunded,
+      ],
+    };
+
+    const filter: { [key: string]: any } = { customer: user._id.toString() };
+
+    if (search?.trim()) {
+      const escapedSearch = search
+        .trim()
+        .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+      filter["$or"] = [
+        { orderNumber: { $regex: escapedSearch, $options: "i" } },
+        { "items.title": { $regex: escapedSearch, $options: "i" } },
+        //{ cancellationReason: { $regex: escapedSearch, $options: "i" } },
+      ];
+    }
+
+    if (category) {
+      filter["status"] = {
+        $in: validCategories[category as keyof typeof validCategories] || [],
+      };
+    }
+    const orders = await Order.find(filter)
+      .populate("vendor", "name logo slug")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const sanitizedOrders = orders.map(sanitizeToId);
+
+    return {
+      message: "Customer orders retrieved successfully",
+      orders: sanitizedOrders,
+    };
+  }
+
+  //get customer orders summary
+  async getCustomerOrdersSummary(user: IUserDocument) {
+    const validCategories = {
+      ongoing: [
+        statusHistoryStates.assigned,
+        statusHistoryStates.picked_up,
+        statusHistoryStates.on_the_way,
+        statusHistoryStates.pending,
+        statusHistoryStates.confirmed,
+        statusHistoryStates.preparing,
+        statusHistoryStates.ready,
+      ],
+      completed: [
+        statusHistoryStates.delivered,
+        statusHistoryStates.cancelled,
+        statusHistoryStates.refunded,
+      ],
+    };
+
+    const ongoingCount = await Order.countDocuments({
+      customer: user._id.toString(),
+      status: { $in: validCategories.ongoing },
+    });
+
+    const completedCount = await Order.countDocuments({
+      customer: user._id.toString(),
+      status: { $in: validCategories.completed },
+    });
+
+    const deliveredCount = await Order.countDocuments({
+      customer: user._id.toString(),
+      status: statusHistoryStates.delivered,
+    });
+
+    const totalAmountSpent = await Order.aggregate([
+      {
+        $match: {
+          customer: user._id.toString(),
+          status: statusHistoryStates.delivered,
+        },
+      },
+      { $group: { _id: null, totalSpent: { $sum: "$total" } } },
+    ]);
+
+    const averageAmountPerOrder = totalAmountSpent.length
+      ? totalAmountSpent[0].totalSpent / deliveredCount
+      : 0;
+
+    return {
+      message: "Customer orders summary retrieved successfully",
+      summary: {
+        ongoing: ongoingCount,
+        completed: completedCount,
+        allCount: ongoingCount + completedCount,
+        delivered: deliveredCount,
+      },
+      totalAmountSpent: totalAmountSpent.length
+        ? totalAmountSpent[0].totalSpent
+        : 0,
+      averageAmountPerOrder,
+    };
+  }
+
+  //revalidate checkout order
+  async revalidateCheckoutSession(user: IUserDocument, orderId: string) {
+    const order = await Order.findById(orderId);
+    if (!order) {
+      throw new AppError(404, "Order not found");
+    }
+
+    const sanitizedOrder = sanitizeToId(order);
+
+    const { errors: cartErrors, detailedErrors: cartDetailedErrors } =
+      await validateCart(order.items);
+
+    return {
+      order: sanitizedOrder,
+      cartErrors,
+      cartDetailedErrors,
+      message: "Checkout revalidated successfully",
+    };
   }
 }
-
 const orderService = new OrderService();
 
 export default orderService;

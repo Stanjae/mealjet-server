@@ -7,6 +7,7 @@ import { AppError } from "@shared/middleware/error.middleware";
 import { ApplicationCharges } from "@shared/types/enums";
 import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
+import inBetween from "dayjs/plugin/isBetween";
 import utc from "dayjs/plugin/utc";
 import { Request } from "express";
 import crypto from "crypto";
@@ -14,6 +15,7 @@ import { ILocation } from "@shared/models/shared.types";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
+dayjs.extend(inBetween);
 
 dayjs.tz.setDefault("Africa/Lagos");
 
@@ -25,18 +27,19 @@ type CookieOptions = {
   sameSite: "strict" | "none" | "lax";
   maxAge?: number;
   path?: string;
-}
+};
 export const cookieOptions = (maxAge?: number, path?: string) => {
   const COOKIE_OPTIONS: CookieOptions = {
     httpOnly: true,
     secure: env.NODE_ENV === "production",
-    sameSite: env.NODE_ENV === "production" ? "none" as const : "strict" as const, 
+    sameSite:
+      env.NODE_ENV === "production" ? ("none" as const) : ("strict" as const),
   };
   if (path) {
     COOKIE_OPTIONS.path = path;
   }
-  if(maxAge){
-    COOKIE_OPTIONS.maxAge = maxAge//30 * 24 * 60 * 60 * 1000, // 30 days in ms
+  if (maxAge) {
+    COOKIE_OPTIONS.maxAge = maxAge; //30 * 24 * 60 * 60 * 1000, // 30 days in ms
   }
   return COOKIE_OPTIONS;
 };
@@ -66,10 +69,14 @@ export const getPageFromQuery = (pageQuery: Request["query"]["page"]) => {
 
 export async function validateCart(cartItems: MJAddToCartItem[]) {
   const errors: string[] = [];
+  const detailedErrors: { itemId: string; message: string, type:'vendor'|'item' }[] = [];
 
   await Promise.all(
     cartItems.map(async (item) => {
       const menuItem = await MenuItem.findById(item.id);
+      const vendor = (await Vendor.findById(item.vendorId))?.toObject({
+        virtuals: true,
+      });
 
       const addonsTotal =
         item.addons?.reduce((addonAcc, addon) => {
@@ -79,16 +86,21 @@ export async function validateCart(cartItems: MJAddToCartItem[]) {
           return addonAcc + optionsTotal;
         }, 0) || 0;
 
+      if (!vendor || !vendor.isOpen) {
+        errors.push(`${item.title} vendor is no longer open for orders`);
+        detailedErrors.push({ itemId: item.id, message: `${item.title} vendor is no longer open for orders`, type: 'vendor' });
+      }
+
       if (!menuItem || !menuItem.isAvailable) {
         errors.push(`${item.title} is no longer available`);
+        detailedErrors.push({ itemId: item.id, message: `${item.title} is no longer available`, type: 'item' });
       } else if (menuItem.price !== item.price - addonsTotal) {
         errors.push(`${item.title} price has changed to ₦${menuItem.price}`);
+        detailedErrors.push({ itemId: item.id, message: `${item.title} price has changed to ₦${menuItem.price}`, type: 'item' });
       }
     }),
   );
-
-  if (errors.length) throw new AppError(422, errors.join(", "));
-  return true;
+  return { errors, detailedErrors };
 }
 
 export function getDistanceInKmAndFees(
@@ -171,7 +183,9 @@ export async function buildCheckoutSummary(
             vendorLocation: location,
             calculatedDistanceKm: distanceKm,
             calculatedSubtotal: totalPrice,
-            items: [arr.filter((item) => item.vendorId == _id.toString())].flat(),
+            items: [
+              arr.filter((item) => item.vendorId == _id.toString()),
+            ].flat(),
             serviceCharge: ApplicationCharges.SERVICE_CHARGES,
             total:
               totalPrice * product.quantity +
@@ -208,29 +222,31 @@ export async function buildCheckoutSummary(
     totalSubtotal,
     totalDeliveryFee,
   };
-};
+}
 
 let dailyCounter = 0;
 const lastDate = new Date().toDateString();
 export async function generateOrderNumber() {
   const timestamp = Date.now().toString(36).toUpperCase(); // Base36 = shorter
 
-   const now = new Date();
+  const now = new Date();
   const currentDate = now.toDateString();
-  
+
   // Reset counter at midnight
   if (currentDate !== lastDate) {
     dailyCounter = 0;
   }
-  
+
   dailyCounter++;
-  const counter = dailyCounter.toString().padStart(4, '0'); // 0001
-  
+  const counter = dailyCounter.toString().padStart(4, "0"); // 0001
+
   return `ORD-${timestamp}-${counter}`; // ORD-LXJQ2X-0001
 }
 
-
-export function calculateEstimatedDelivery(distanceKm: number, prepTimeMinutes: number) {
+export function calculateEstimatedDelivery(
+  distanceKm: number,
+  prepTimeMinutes: number,
+) {
   const BUFFER_MINUTES = 5; // pickup buffer
   const AVERAGE_SPEED = 20; // km/h
 
@@ -242,9 +258,9 @@ export function calculateEstimatedDelivery(distanceKm: number, prepTimeMinutes: 
 
   return {
     totalMinutes,
-    eta,                         // exact ETA Date object → store in DB
+    eta, // exact ETA Date object → store in DB
     display: `${totalMinutes} mins`,
-    range: `${formatTime(eta)} – ${formatTime(addMinutes(eta, 10))}` // e.g "1:00 PM – 1:10 PM"
+    range: `${formatTime(eta)} – ${formatTime(addMinutes(eta, 10))}`, // e.g "1:00 PM – 1:10 PM"
   };
 }
 
@@ -260,8 +276,8 @@ function addMinutes(date: Date, mins: number) {
   return new Date(date.getTime() + mins * 60 * 1000);
 }
 
-const ENCRYPTION_KEY =  crypto
-  .createHash('sha256')
+const ENCRYPTION_KEY = crypto
+  .createHash("sha256")
   .update(env.BANK_DETAILS_ENCRYPTION_KEY!)
   .digest(); // always returns exactly 32 bytes!; // must be 32 chars
 const ALGORITHM = "aes-256-cbc";

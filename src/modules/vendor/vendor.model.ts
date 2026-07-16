@@ -1,6 +1,6 @@
 import mongoose, { Schema } from "mongoose";
 import { IOpeningHour, IVendor } from "./vendor.types";
-import { decrypt, encrypt} from "@shared/utils/helpers";
+import { decrypt, encrypt, newDayJs} from "@shared/utils/helpers";
 import { addressSchema, bankDetailsSchema } from "@shared/models/shared.models";
 import { IBankDetails } from "@shared/models/shared.types";
 
@@ -55,11 +55,6 @@ const vendorSchema = new Schema<IVendor>(
       enum: ["pending_approval", "active", "suspended", "closed"],
       default: "pending_approval",
       index: true,
-    },
-
-    isOpen: {
-      type: Boolean,
-      default: false,
     },
 
     logo: {
@@ -167,6 +162,8 @@ const vendorSchema = new Schema<IVendor>(
   },
   {
     timestamps: true,
+    toJSON: { virtuals: false },
+    toObject: { virtuals: false },
   },
 );
 
@@ -221,7 +218,7 @@ vendorSchema.methods.getBankDetails = function (): IBankDetails {
 // Auto-generate slug from name
 // ─────────────────────────────────────────
 
-vendorSchema.pre("save", function (next) {
+vendorSchema.pre("save", function () {
   if (this.isModified("name") && !this.slug) {
     this.slug =
       this.name
@@ -231,6 +228,39 @@ vendorSchema.pre("save", function (next) {
         .replace(/\s+/g, "-")
         .replace(/-+/g, "-") + "-" + Math.random().toString(36).slice(2, 7);
   }
+});
+
+vendorSchema.virtual("isOpen").get(function (this: IVendor) {
+  const now = newDayJs();
+  const today = now.format("d");
+  const openingHours = Array.isArray(this.openingHours) ? this.openingHours : [];
+
+  const openDayObj = openingHours.find((item) => item.day === today);
+  if (!openDayObj || openDayObj.isClosed || !openDayObj.openTime || !openDayObj.closeTime) {
+    return false;
+  }
+
+  const [openHour, openMinute] = openDayObj.openTime.split(":").map(Number);
+  const [closeHour, closeMinute] = openDayObj.closeTime.split(":").map(Number);
+
+  if (
+    Number.isNaN(openHour) ||
+    Number.isNaN(openMinute) ||
+    Number.isNaN(closeHour) ||
+    Number.isNaN(closeMinute)
+  ) {
+    return false;
+  }
+
+  const openAt = now.hour(openHour).minute(openMinute).second(0).millisecond(0);
+  let closeAt = now.hour(closeHour).minute(closeMinute).second(0).millisecond(0);
+
+  // Handle overnight schedules like 20:00 -> 02:00.
+  if (closeAt.isBefore(openAt)) {
+    closeAt = closeAt.add(1, "day");
+  }
+
+  return now.isBetween(openAt, closeAt, "minute", "[]");
 });
 
 const Vendor = mongoose.model<IVendor>("Vendor", vendorSchema);

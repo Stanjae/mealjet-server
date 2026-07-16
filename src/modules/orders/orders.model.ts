@@ -103,7 +103,7 @@ const orderSchema = new Schema<IOrder>(
     cancelledByUserId: { type: String, default: null }, // optional, user role of who triggered the change
     cancellationReason: { type: String, default: null },
   },
-  { timestamps: true },
+  { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } },
 );
 
 const Order = model("Order", orderSchema);

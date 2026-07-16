@@ -3,10 +3,20 @@ import { Router } from "express";
 import * as orderController from "./orders.controllers";
 
 const router = Router();
-
+// Checkout order
 router.post("/check-out", authenticate, authorize("customer"), orderController.handleValidateCheckoutOrder);
 
+// Fetches order details by orderId
+router.get("/get-order-details-by-id/:orderId", authenticate, authorize("customer"), orderController.getOrderDetailsById);
+
+// Fetches order details by checkoutId
 router.get("/get-order-details/:checkoutId", authenticate, authorize("customer"), orderController.getOrderDetails);
+
+//fetches customer order history
+router.get("/get-customer-orders", authenticate, authorize("customer"), orderController.getCustomerOrders);
+
+//fetches customer order history summary
+router.get("/get-customer-orders-summary", authenticate, authorize("customer"), orderController.getCustomerOrdersSummary);
 
 // Fetches all orders assigned to a vendor
 router.get("/get-vendor-orders/:vendorId", authenticate, authorize("vendor"), orderController.getVendorOrders);
@@ -45,6 +55,14 @@ router.patch(
 	authenticate,
 	authorize("rider"),
 	orderController.riderUpdateDeliveryStatus,
+);
+
+//revalidates checkout session for a given orderId and returns updated summary
+router.get(
+	"/revalidate-checkout-session/:orderId",
+	authenticate,
+	authorize("customer"),
+	orderController.revalidateCheckoutSession,
 );
 
 

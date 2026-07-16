@@ -21,6 +21,18 @@ export const handleValidateCheckoutOrder = asyncHandler(
   },
 );
 
+export const getOrderDetailsById = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { orderId } = req.params;
+    const result = await orderService.getOrderDetailsById(
+      req.user as IUserDocument,
+      orderId as string,
+    );
+
+    ApiResponse.success(res, { order: result.order }, result.message);
+  },
+);
+
 export const getOrderDetails = asyncHandler(
   async (req: Request, res: Response) => {
     const { checkoutId } = req.params;
@@ -120,5 +132,41 @@ export const riderUpdateDeliveryStatus = asyncHandler(
     );
 
     ApiResponse.success(res, result, "Delivery status updated successfully");
+  },
+);
+
+export const getCustomerOrders = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { message, orders } = await orderService.getCustomerOrders(
+      req.user as IUserDocument,
+      req.query as Record<string, string | undefined>,
+    );
+
+    ApiResponse.success(res, { orders }, message);
+  },
+);
+
+export const getCustomerOrdersSummary = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { message, ...orderResults } =
+      await orderService.getCustomerOrdersSummary(req.user as IUserDocument);
+
+    ApiResponse.success(res, orderResults, message);
+  },
+);
+
+export const revalidateCheckoutSession = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { orderId } = req.params;
+    const {message, ...restResult} = await orderService.revalidateCheckoutSession(
+      req.user as IUserDocument,
+      orderId as string,
+    );
+
+    ApiResponse.success(
+      res,
+      restResult,
+      message,
+    );
   },
 );
