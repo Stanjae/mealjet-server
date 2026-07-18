@@ -1,9 +1,9 @@
 import { Router } from 'express';
 import { body } from 'express-validator';
 import { validate } from '@shared/middleware/validate.middleware.js';
-import { authenticate, isAuthenticatedMiddleware } from '@shared/middleware/auth.middleware';
+import { authenticate, isAuthenticatedMiddleware } from '@shared/middleware/auth.middleware.js';
 import * as authController from './auth.controller';
-import { USER_ROLES } from '@shared/constants/auth.constants';
+import { UserRole } from '@shared/types/enums';
 
 const router = Router();
 
@@ -12,7 +12,7 @@ router.post('/register',
     body('username').trim().notEmpty().withMessage('Username is required'),
     body('email').isEmail().normalizeEmail().withMessage('Valid email required'),
     body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
-    body('role').isIn(USER_ROLES)
+    body('role').isIn(Object.values(UserRole))
       .withMessage('Invalid role'),
   ],
   validate,
@@ -32,9 +32,9 @@ router.post('/login',
   authController.login
 );
 
-router.post('/refresh', authenticate, authController.refresh);
+router.get('/refresh', isAuthenticatedMiddleware, authController.isAuthenticated);
 
-router.get('/is-authenticated', isAuthenticatedMiddleware, authController.isAuthenticated);
+router.get('/is-authenticated', authenticate, authController.isAuthenticated);
 
 router.post('/logout', authenticate, authController.logout);
 

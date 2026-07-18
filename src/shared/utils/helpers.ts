@@ -87,8 +87,8 @@ export async function validateCart(cartItems: MJAddToCartItem[]) {
         }, 0) || 0;
 
       if (!vendor || !vendor.isOpen) {
-        errors.push(`${item.title} vendor is no longer open for orders`);
-        detailedErrors.push({ itemId: item.id, message: `${item.title} vendor is no longer open for orders`, type: 'vendor' });
+        errors.push(`${vendor?.name} vendor is no longer open for orders`);
+        detailedErrors.push({ itemId: item.id, message: `${vendor?.name} vendor is no longer open for orders`, type: 'vendor' });
       }
 
       if (!menuItem || !menuItem.isAvailable) {

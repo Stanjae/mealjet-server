@@ -1,4 +1,4 @@
-import { USER_ROLES } from "@shared/constants/auth.constants";
+
 import {
   orderTypes,
   PAYMENT_METHODS,
@@ -9,13 +9,14 @@ import {
 import { model, Schema } from "mongoose";
 import { IOrder } from "./orders.types";
 import { addressSchema } from "@shared/models/shared.models";
+import { UserRole } from "@shared/types/enums";
 
 const statusHistorySchema = new Schema(
   {
     status: { type: String, enum: Object.values(statusHistoryStates) },
     timestamp: { type: Date, default: Date.now },
     updatedBy: { type: String }, // who triggered the change
-    updatedByUserRole: { type: String, enum: USER_ROLES }, // optional, user role of who triggered the change
+    updatedByUserRole: { type: String, enum: Object.values(UserRole) }, // optional, user role of who triggered the change
   },
   { _id: false },
 );
@@ -98,7 +99,7 @@ const orderSchema = new Schema<IOrder>(
 
     cancelledBy: {
       type: String,
-      enum: USER_ROLES,
+      enum: Object.values(UserRole),
     },
     cancelledByUserId: { type: String, default: null }, // optional, user role of who triggered the change
     cancellationReason: { type: String, default: null },

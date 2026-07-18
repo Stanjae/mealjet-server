@@ -43,7 +43,7 @@ export function createApp(): Application {
   // ── Global rate limiting ──────────────────────────────────────
   app.use(
     rateLimit({
-      windowMs: 1 * 60 * 1000, // 15 minutes
+      windowMs: 1 * 60 * 1000, // 1 minute
       max: 200,
       standardHeaders: true,
       legacyHeaders: false,
@@ -52,7 +52,7 @@ export function createApp(): Application {
   );
 
   // ── Parsers ──────────────────────────────────────────────────
-  // Stripe webhook needs raw body — register BEFORE json parser
+  // Paystack webhook needs raw body — register BEFORE json parser
   app.use((req, _res, next) => {
     console.log('Original URL:', req.originalUrl);
   if (req.originalUrl === '/api/payments/webhook/paystack') {

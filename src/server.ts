@@ -6,6 +6,7 @@ import { connectDatabase, disconnectDatabase } from '@shared/config/database.js'
 import { redis } from '@shared/config/redis.js';
 import { env } from '@shared/config/env.js';
 import { logger } from '@shared/utils/logger.js';
+import { startEmailWorker, stopEmailWorker } from '@shared/queues/email.worker.js';
 
 async function main() {
   // 1. Connect to MongoDB
@@ -15,6 +16,9 @@ async function main() {
   redis.connect().catch((err) => {
     logger.warn('Redis connection failed, continuing without Redis:', err.message);
   });
+
+  // 2b. Start BullMQ workers
+  startEmailWorker();
 
   // 3. Create Express app
   const app = createApp();
@@ -76,6 +80,7 @@ async function main() {
   const shutdown = async (signal: string) => {
     logger.warn(`Received ${signal} — shutting down gracefully...`);
     httpServer.close(async () => {
+      await stopEmailWorker();
       await disconnectDatabase();
       await redis.quit();
       logger.info('Graceful shutdown complete');

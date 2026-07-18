@@ -1,9 +1,7 @@
 // src/modules/users/user.types.ts
-
-import { USER_ROLES } from "@shared/constants/auth.constants";
 import { ILocation } from "@shared/models/shared.types";
+import { UserRole } from "@shared/types/enums";
 
-export type UserRole = typeof USER_ROLES[number];
 export type UserStatus =
   | "active"
   | "suspended"

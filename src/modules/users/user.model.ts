@@ -1,8 +1,9 @@
 import { Schema, model, Document, Types } from "mongoose";
 import bcrypt from "bcryptjs";
 import { IUser } from "./user.types";
-import { USER_ROLES, USER_STATUSES } from "@shared/constants/auth.constants";
+import { USER_STATUSES } from "@shared/constants/auth.constants";
 import { addressSchema } from "@shared/models/shared.models";
+import { UserRole } from "@shared/types/enums";
 
 export interface IUserDocument extends IUser, Document {
   _id: Types.ObjectId;
@@ -25,8 +26,8 @@ const userSchema = new Schema<IUserDocument>(
     passwordHash: { type: String, select: false }, // Never returned by default
     role: {
       type: String,
-      enum: USER_ROLES,
-      default: "customer",
+      enum: Object.values(UserRole),
+      default: UserRole.CUSTOMER,
     },
     status: {
       type: String,

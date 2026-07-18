@@ -42,10 +42,10 @@
     "vitest": "^4.0.18"
   },
   "dependencies": {
-    "tsx": "^4.21.0",
     "@googlemaps/google-maps-services-js": "^3.4.2",
     "agenda": "^6.2.2",
     "bcryptjs": "^3.0.3",
+    "bullmq": "^5.80.8",
     "cloudinary": "^2.9.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
@@ -68,6 +68,7 @@
     "resend": "^6.9.2",
     "socket.io": "^4.8.3",
     "tsconfig-paths": "^4.2.0",
+    "tsx": "^4.21.0",
     "winston": "^3.19.0",
     "zod": "^4.3.6"
   }

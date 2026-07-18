@@ -7,17 +7,17 @@ import { IUserDocument } from "@modules/users/user.model.js";
 
 export const register = asyncHandler(async (req: Request, res: Response) => {
   const result = await authService.register(req.body);
-  ApiResponse.created(res, result);
+  ApiResponse.created(res, {}, result.message);
 });
 
 export const verifyEmail = asyncHandler(async (req: Request, res: Response) => {
-  const result = await authService.verifyEmail(req.query.token as string);
-  ApiResponse.success(res, result);
+  const { isVerified, title, message } = await authService.verifyEmail(req.query.token as string);
+  ApiResponse.success(res, { isVerified, title }, message);
 });
 
 export const verifyNow = asyncHandler(async (req: Request, res: Response) => {
   const result = await authService.verifyNow(req.query.email as string);
-  ApiResponse.success(res, result);
+  ApiResponse.success(res, {}, result.message);
 });
 
 export const login = asyncHandler(async (req: Request, res: Response) => {
@@ -30,21 +30,6 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
   );
   res.cookie("accessToken", tokens.accessToken, cookieOptions(15 * 60 * 1000)); // 15 min expiry for access token
   ApiResponse.success(res, { user }, "Login successful");
-});
-
-export const refresh = asyncHandler(async (req: Request, res: Response) => {
-  const { refreshToken } = req.cookies;
-  if (!refreshToken) {
-    ApiResponse.unauthorized(res, "No refresh token");
-    return;
-  }
-  const tokens = await authService.refresh(refreshToken);
-  res.cookie(
-    "refreshToken",
-    tokens.refreshToken,
-    cookieOptions(7 * 24 * 60 * 60 * 1000, "/auth/refresh"),
-  );
-  ApiResponse.success(res, { accessToken: tokens.accessToken });
 });
 
 export const logout = asyncHandler(async (req: Request, res: Response) => {

@@ -21,3 +21,10 @@ export enum VehicleType {
   MOTORBIKE = "motorbike",
   SCOOTER = "scooter",
 }
+
+export enum UserRole {
+  CUSTOMER = "customer",
+  VENDOR = "vendor",
+  RIDER = "rider",
+  ADMIN = "admin",
+}

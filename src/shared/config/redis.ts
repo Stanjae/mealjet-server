@@ -32,7 +32,7 @@ export const redisGet = async <T>(key: string): Promise<T | null> => {
 
 export const redisSet = async <T>(key: string, value: T, ttlSeconds?: number): Promise<void> => {
   const serialized = JSON.stringify(value);
-  if (ttlSeconds) {
+  if (ttlSeconds !== undefined) {
     await redis.setex(key, ttlSeconds, serialized);
   } else {
     await redis.set(key, serialized);

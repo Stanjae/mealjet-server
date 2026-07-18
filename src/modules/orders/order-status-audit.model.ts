@@ -1,5 +1,5 @@
-import { USER_ROLES } from '@shared/constants/auth.constants';
 import { statusHistoryStates } from '@shared/constants/orders.constants';
+import { UserRole } from '@shared/types/enums';
 import { model, Schema } from 'mongoose';
 
 const orderStatusAuditSchema = new Schema(
@@ -28,7 +28,7 @@ const orderStatusAuditSchema = new Schema(
     },
     actorRole: {
       type: String,
-      enum: USER_ROLES,
+      enum: Object.values(UserRole),
       required: true,
       index: true,
     },

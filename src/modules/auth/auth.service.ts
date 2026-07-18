@@ -1,20 +1,19 @@
 import crypto from "crypto";
 import { IUserDocument, UserModel } from "@modules/users/user.model.js";
-import {
-  generateTokenPair,
-  verifyRefreshToken,
-} from "@shared/utils/jwt-util.js";
+import { generateTokenPair } from "@shared/utils/jwt-util.js";
 import { redisSet, redisGet, redisDel } from "@shared/config/redis.js";
 import { AppError } from "@shared/middleware/error.middleware";
 import { RegisterDto, LoginDto, AuthTokens } from "./auth.types";
-import { sendVerificationEmail } from "@shared/utils/email-util.js";
+import { enqueueVerificationEmailJob } from "@shared/queues/email.queue.js";
 import Vendor from "@modules/vendor/vendor.model";
 import { IAddress, IUser } from "@modules/users/user.types";
 import { ALLOWED_LOCATIONS } from "@shared/constants/auth.constants";
 import Rider from "@modules/rider/rider.model";
 import { Request } from "express";
+import { UserRole } from "@shared/types/enums";
 
 export class AuthService {
+  // Register a new user and send email verification
   async register(dto: RegisterDto) {
     const existing = await UserModel.findOne({
       email: dto.email.toLowerCase(),
@@ -28,11 +27,14 @@ export class AuthService {
         role: dto.role,
       });
 
-      // Generate email verification token (store in Redis, TTL 24h)
       const verifyToken = crypto.randomBytes(32).toString("hex");
-      await redisSet(`email_verify:${verifyToken}`, user._id.toString(), 86400);
+      await redisSet(`email_verify:${verifyToken}`, user._id.toString(), 900); // 15 min TTL
 
-      await sendVerificationEmail(user.email, user.username, verifyToken);
+      await enqueueVerificationEmailJob({
+        to: user.email,
+        name: user.username,
+        token: verifyToken,
+      });
 
       return { message: "Registration successful. Please verify your email." };
     } catch (err) {
@@ -45,28 +47,26 @@ export class AuthService {
 
   async verifyNow(email: string) {
     const existing = await UserModel.findOne({
-      email: email.toLowerCase(),
+      email: email.toLowerCase().trim(),
     });
     if (!existing) throw new AppError(409, "User does not exist");
     try {
-      // Generate email verification token (store in Redis, TTL 24h)
       const verifyToken = crypto.randomBytes(32).toString("hex");
       await redisSet(
         `email_verify:${verifyToken}`,
         existing._id.toString(),
-        86400,
+        900, // 15 min TTL
       );
 
-      await sendVerificationEmail(
-        existing.email,
-        existing.username,
-        verifyToken,
-        true,
-      );
+      await enqueueVerificationEmailJob({
+        to: existing.email,
+        name: existing.username,
+        token: verifyToken,
+        isLogin: true,
+      });
 
       return {
         message: "Verification email sent successfully.",
-        statusCode: 200,
       };
     } catch (err) {
       throw new AppError(
@@ -81,24 +81,29 @@ export class AuthService {
     if (!userId)
       throw new AppError(400, "Invalid or expired verification link");
 
-    const user = await UserModel.findByIdAndUpdate(
-      userId,
-      {
-        emailVerified: true,
-        status: "active",
-      },
-      { returnDocument: "after" },
-    ).select("-passwordHash -refreshTokens");
-    await redisDel(`email_verify:${token}`);
+    const user = await UserModel.findOne({
+      _id: userId,
+      emailVerified: true,
+      status: "active",
+    });
 
-    if (!user) throw new AppError(401, "User not found");
+    if (user) {
+      return {
+        message: "Email already verified successfully. You can now log in.",
+        title: "Email Already Verified",
+        isVerified: true,
+      };
+    }
 
-    const userObj = user.toObject();
-    const { passwordHash, refreshTokens, _id, ...safeUser } = userObj;
+    await UserModel.findByIdAndUpdate(userId, {
+      emailVerified: true,
+      status: "active",
+    });
 
     return {
       message: "Email verified successfully. You can now log in.",
-      user: { ...safeUser, id: _id },
+      title: "Email Verified",
+      isVerified: true,
     };
   }
 
@@ -125,17 +130,20 @@ export class AuthService {
       email: user.email,
     });
 
-    if (user.role === "vendor") {
+    if (user.role === UserRole.VENDOR) {
       hasProfile =
         (await Vendor.countDocuments({ owner: user._id.toString() })) > 0;
     }
 
-    if (user.role === "rider") {
+    if (user.role === UserRole.RIDER) {
       hasProfile =
-        (await Rider.findOne({ owner: user._id.toString(), status: "active" })) !== null;
+        (await Rider.findOne({
+          owner: user._id.toString(),
+          status: "active",
+        })) !== null;
     }
 
-    if (user.role === "customer") {
+    if (user.role === UserRole.CUSTOMER) {
       hasProfile = true; // Customers don't have separate profiles
     }
 
@@ -155,38 +163,6 @@ export class AuthService {
     const { passwordHash, refreshTokens, _id, ...safeUser } = userObj;
 
     return { user: { ...safeUser, id: _id, hasProfile }, tokens };
-  }
-
-  async refresh(refreshToken: string): Promise<AuthTokens> {
-    const decoded = verifyRefreshToken(refreshToken); // throws if invalid/expired
-    const tokenHash = crypto
-      .createHash("sha256")
-      .update(refreshToken)
-      .digest("hex");
-
-    const user = await UserModel.findById(decoded.userId).select(
-      "+refreshTokens",
-    );
-    if (!user || !user.refreshTokens.includes(tokenHash)) {
-      throw new AppError(401, "Invalid refresh token");
-    }
-
-    // Token rotation — remove old, add new
-    const newTokens = generateTokenPair({
-      userId: user._id.toString(),
-      role: user.role,
-      email: user.email,
-    });
-    const newHash = crypto
-      .createHash("sha256")
-      .update(newTokens.refreshToken)
-      .digest("hex");
-    user.refreshTokens = user.refreshTokens
-      .filter((h) => h !== tokenHash)
-      .concat(newHash);
-    await user.save();
-
-    return newTokens;
   }
 
   async logout(userId: string, refreshToken?: string): Promise<void> {
@@ -301,18 +277,23 @@ export class AuthService {
     let hasProfile = false;
     const user = req?.user?.toObject();
 
-    if (user.role === "vendor") {
+    if (user.role === UserRole.VENDOR) {
       hasProfile =
-        (await Vendor.countDocuments({ owner: user._id.toString(), status: "active" })) > 0;
+        (await Vendor.countDocuments({
+          owner: user._id.toString()
+        })) > 0;
     }
 
-    if (user.role === "rider") {
+    if (user.role === UserRole.RIDER) {
       const profile =
-        (await Rider.findOne({ owner: user._id.toString(), status: "active" })) !== null;
+        (await Rider.findOne({
+          owner: user._id.toString(),
+          status: "active",
+        })) !== null;
       hasProfile = profile ? true : false;
     }
 
-    if (user.role === "customer") {
+    if (user.role === UserRole.CUSTOMER) {
       hasProfile = true; // Customers don't have separate profiles
     }
 

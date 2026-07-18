@@ -6,13 +6,14 @@ import {
   updateMenuCategorySchema,
 } from "@shared/schemas/menuCategorySchema";
 import { validateWithSchema } from "@shared/middleware/validate.middleware";
+import { UserRole } from "@shared/types/enums";
 
 const router = Router();
 
 router.post(
   "/create",
   authenticate,
-  authorize("vendor"),
+  authorize(UserRole.VENDOR),
   validateWithSchema(createMenuCategorySchema),
   menuCategoryController.createMenuCategory,
 );
@@ -20,14 +21,14 @@ router.post(
 router.get(
   "/get-categories/:vendorId",
   authenticate,
-  authorize("vendor", 'customer'),
+  authorize(UserRole.VENDOR, UserRole.CUSTOMER),
   menuCategoryController.getMenuCategories,
 );
 
 router.patch(
   "/update",
   authenticate,
-  authorize("vendor"),
+  authorize(UserRole.VENDOR),
   validateWithSchema(updateMenuCategorySchema),
   menuCategoryController.updateMenuCategory,
 );
@@ -35,14 +36,14 @@ router.patch(
 router.delete(
   "/delete/:categoryId",
   authenticate,
-  authorize("vendor"),
+  authorize(UserRole.VENDOR),
   menuCategoryController.deleteMenuCategory,
 );
 
 router.delete(
   "/delete-multiple-categories",
   authenticate,
-  authorize("vendor"),
+  authorize(UserRole.VENDOR),
   menuCategoryController.deleteMultipleMenuCategories,
 );
 
