@@ -1,7 +1,6 @@
 // src/modules/users/user.types.ts
 import { ILocation } from "@shared/models/shared.types";
 import { UserRole } from "@shared/types/enums";
-
 export type UserStatus =
   | "active"
   | "suspended"

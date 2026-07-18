@@ -1,26 +1,26 @@
 // src/shared/utils/jwt.util.ts
-import jwt from 'jsonwebtoken';
-import { env } from '@shared/config/env.js';
+import jwt from "jsonwebtoken";
+import { env } from "@shared/config/env.js";
 
 export interface JwtPayload {
-  userId:   string;
-  role:     string;
-  email:    string;
+  userId: string;
+  role: string;
+  email: string;
 }
 
 export interface TokenPair {
-  accessToken:  string;
+  accessToken: string;
   refreshToken: string;
 }
 
 export function generateTokenPair(payload: JwtPayload): TokenPair {
   const accessToken = jwt.sign(payload, env.JWT_ACCESS_SECRET, {
-    expiresIn: env.JWT_ACCESS_EXPIRES as jwt.SignOptions['expiresIn'],
+    expiresIn: env.JWT_ACCESS_EXPIRES as jwt.SignOptions["expiresIn"],
   });
   const refreshToken = jwt.sign(
     { userId: payload.userId },
     env.JWT_REFRESH_SECRET,
-    { expiresIn: env.JWT_REFRESH_EXPIRES as jwt.SignOptions['expiresIn'] }
+    { expiresIn: env.JWT_REFRESH_EXPIRES as jwt.SignOptions["expiresIn"] },
   );
   return { accessToken, refreshToken };
 }

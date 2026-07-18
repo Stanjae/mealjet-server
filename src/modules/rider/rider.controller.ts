@@ -7,7 +7,7 @@ import { riderService } from "./rider.service";
 import { IUserDocument } from "@modules/users/user.model";
 
 export const createRider = asyncHandler(async (req: Request, res: Response) => {
- const result = await riderService.createRider(
+  const result = await riderService.createRider(
     req.user as IUserDocument,
     req.body as FullRiderData,
     req.files as IVendorReqFiles,
@@ -15,8 +15,14 @@ export const createRider = asyncHandler(async (req: Request, res: Response) => {
   ApiResponse.created(res, {}, result.message);
 });
 
-export const checkRiderApprovalStatus = asyncHandler(async (req: Request, res: Response) => {
-  const user = req.user as IUserDocument;
-  const isApproved = await riderService.isRiderApproved(user._id.toString());
-  ApiResponse.success(res, isApproved, "Rider approval status retrieved successfully");
-});
+export const checkRiderApprovalStatus = asyncHandler(
+  async (req: Request, res: Response) => {
+    const user = req.user as IUserDocument;
+    const isApproved = await riderService.isRiderApproved(user._id.toString());
+    ApiResponse.success(
+      res,
+      isApproved,
+      "Rider approval status retrieved successfully",
+    );
+  },
+);

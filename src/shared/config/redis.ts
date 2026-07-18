@@ -1,6 +1,6 @@
-import Redis from 'ioredis';
-import { env } from './env.js';
-import { logger } from '@shared/utils/logger.js';
+import Redis from "ioredis";
+import { env } from "./env.js";
+import { logger } from "@shared/utils/logger.js";
 
 class RedisClient {
   private static instance: Redis;
@@ -14,9 +14,13 @@ class RedisClient {
         lazyConnect: true,
       });
 
-      RedisClient.instance.on('connect', () => logger.info('Redis connected'));
-      RedisClient.instance.on('error', (err) => logger.error('Redis error', err));
-      RedisClient.instance.on('reconnecting', () => logger.warn('Redis reconnecting...'));
+      RedisClient.instance.on("connect", () => logger.info("Redis connected"));
+      RedisClient.instance.on("error", (err) =>
+        logger.error("Redis error", err),
+      );
+      RedisClient.instance.on("reconnecting", () =>
+        logger.warn("Redis reconnecting..."),
+      );
     }
     return RedisClient.instance;
   }
@@ -30,7 +34,11 @@ export const redisGet = async <T>(key: string): Promise<T | null> => {
   return val ? (JSON.parse(val) as T) : null;
 };
 
-export const redisSet = async <T>(key: string, value: T, ttlSeconds?: number): Promise<void> => {
+export const redisSet = async <T>(
+  key: string,
+  value: T,
+  ttlSeconds?: number,
+): Promise<void> => {
   const serialized = JSON.stringify(value);
   if (ttlSeconds !== undefined) {
     await redis.setex(key, ttlSeconds, serialized);

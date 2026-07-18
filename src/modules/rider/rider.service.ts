@@ -12,7 +12,7 @@ export class RiderService {
   ) {
     const newUser = user.toObject();
 
-    const {first_name, last_name, phone, ...riderData} = data
+    const { first_name, last_name, phone, ...riderData } = data;
 
     const [vehicleDocument, profilePicture, proofOfId] = await Promise.all([
       uploadToCloudinary(files.vehicle_document[0], "mealjet/riders/documents"),

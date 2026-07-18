@@ -33,7 +33,7 @@ export function createApp(): Application {
   app.use(helmet());
   app.use(
     cors({
-      origin: [env.CLIENT_URL, 'http://localhost:5173'],
+      origin: [env.CLIENT_URL, "http://localhost:5173"],
       credentials: true, // Allow cookies (refresh token)
       methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
       allowedHeaders: ["Content-Type", "Authorization"],
@@ -54,12 +54,12 @@ export function createApp(): Application {
   // ── Parsers ──────────────────────────────────────────────────
   // Paystack webhook needs raw body — register BEFORE json parser
   app.use((req, _res, next) => {
-    console.log('Original URL:', req.originalUrl);
-  if (req.originalUrl === '/api/payments/webhook/paystack') {
-    return next();
-  }
-  express.json({ limit: '10mb' })(req, _res, next);
-});
+    console.log("Original URL:", req.originalUrl);
+    if (req.originalUrl === "/api/payments/webhook/paystack") {
+      return next();
+    }
+    express.json({ limit: "10mb" })(req, _res, next);
+  });
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
 
@@ -72,9 +72,9 @@ export function createApp(): Application {
   }
 
   app.use((_, res, next) => {
-  res.set('Cache-Control', 'no-store');
-  next();
-});
+    res.set("Cache-Control", "no-store");
+    next();
+  });
 
   // ── Health check ─────────────────────────────────────────────
   app.get("/health", (_req, res) => {

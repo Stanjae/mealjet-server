@@ -35,7 +35,9 @@ type TWalletOperationResult = {
 
 class WalletService {
   private normalizeOwnerId(ownerId: Types.ObjectId | string) {
-    return ownerId instanceof Types.ObjectId ? ownerId : new Types.ObjectId(ownerId);
+    return ownerId instanceof Types.ObjectId
+      ? ownerId
+      : new Types.ObjectId(ownerId);
   }
 
   async getOrCreateWallet({
@@ -85,7 +87,9 @@ class WalletService {
     });
   }
 
-  async credit(input: TBaseWalletOperationInput): Promise<TWalletOperationResult> {
+  async credit(
+    input: TBaseWalletOperationInput,
+  ): Promise<TWalletOperationResult> {
     if (input.amount <= 0) {
       throw new AppError(400, "Credit amount must be greater than zero");
     }
@@ -146,7 +150,9 @@ class WalletService {
     };
   }
 
-  async debit(input: TBaseWalletOperationInput): Promise<TWalletOperationResult> {
+  async debit(
+    input: TBaseWalletOperationInput,
+  ): Promise<TWalletOperationResult> {
     if (input.amount <= 0) {
       throw new AppError(400, "Debit amount must be greater than zero");
     }
@@ -179,7 +185,10 @@ class WalletService {
     );
 
     if (!updatedWallet) {
-      throw new AppError(400, "Insufficient wallet balance or wallet is inactive");
+      throw new AppError(
+        400,
+        "Insufficient wallet balance or wallet is inactive",
+      );
     }
 
     const balanceAfter = updatedWallet.balance;

@@ -7,7 +7,7 @@ import {
 } from "@shared/utils/jwt-util.js";
 import { ApiResponse } from "@shared/utils/api-response.js";
 import { UserModel } from "@modules/users/user.model.js";
-import { UserRole } from "@modules/users/user.types.js";
+import { UserRole } from "@shared/types/enums";
 import { cookieOptions } from "@shared/utils/helpers";
 
 export async function authenticate(

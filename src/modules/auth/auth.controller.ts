@@ -11,7 +11,9 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const verifyEmail = asyncHandler(async (req: Request, res: Response) => {
-  const { isVerified, title, message } = await authService.verifyEmail(req.query.token as string);
+  const { isVerified, title, message } = await authService.verifyEmail(
+    req.query.token as string,
+  );
   ApiResponse.success(res, { isVerified, title }, message);
 });
 

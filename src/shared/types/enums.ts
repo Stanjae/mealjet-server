@@ -15,7 +15,6 @@ export enum AvailabilityStatus {
   BUSY = "busy",
 }
 
-
 export enum VehicleType {
   BICYCLE = "bicycle",
   MOTORBIKE = "motorbike",

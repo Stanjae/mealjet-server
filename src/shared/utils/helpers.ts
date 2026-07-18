@@ -69,7 +69,11 @@ export const getPageFromQuery = (pageQuery: Request["query"]["page"]) => {
 
 export async function validateCart(cartItems: MJAddToCartItem[]) {
   const errors: string[] = [];
-  const detailedErrors: { itemId: string; message: string, type:'vendor'|'item' }[] = [];
+  const detailedErrors: {
+    itemId: string;
+    message: string;
+    type: "vendor" | "item";
+  }[] = [];
 
   await Promise.all(
     cartItems.map(async (item) => {
@@ -88,15 +92,27 @@ export async function validateCart(cartItems: MJAddToCartItem[]) {
 
       if (!vendor || !vendor.isOpen) {
         errors.push(`${vendor?.name} vendor is no longer open for orders`);
-        detailedErrors.push({ itemId: item.id, message: `${vendor?.name} vendor is no longer open for orders`, type: 'vendor' });
+        detailedErrors.push({
+          itemId: item.id,
+          message: `${vendor?.name} vendor is no longer open for orders`,
+          type: "vendor",
+        });
       }
 
       if (!menuItem || !menuItem.isAvailable) {
         errors.push(`${item.title} is no longer available`);
-        detailedErrors.push({ itemId: item.id, message: `${item.title} is no longer available`, type: 'item' });
+        detailedErrors.push({
+          itemId: item.id,
+          message: `${item.title} is no longer available`,
+          type: "item",
+        });
       } else if (menuItem.price !== item.price - addonsTotal) {
         errors.push(`${item.title} price has changed to ₦${menuItem.price}`);
-        detailedErrors.push({ itemId: item.id, message: `${item.title} price has changed to ₦${menuItem.price}`, type: 'item' });
+        detailedErrors.push({
+          itemId: item.id,
+          message: `${item.title} price has changed to ₦${menuItem.price}`,
+          type: "item",
+        });
       }
     }),
   );

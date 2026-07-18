@@ -91,7 +91,9 @@ walletTransactionSchema.index(
   { wallet: 1, idempotencyKey: 1 },
   {
     unique: true,
-    partialFilterExpression: { idempotencyKey: { $exists: true, $type: "string" } },
+    partialFilterExpression: {
+      idempotencyKey: { $exists: true, $type: "string" },
+    },
   },
 );
 

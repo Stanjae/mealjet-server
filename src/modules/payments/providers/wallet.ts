@@ -8,7 +8,7 @@ const walletService = {
     checkoutSessionId,
     noteForRider,
     noteForVendor,
-    paymentMethod
+    paymentMethod,
   }: TInitializePaymentProviderPayload) => {
     const res = await fetch("https://api.paystack.co/transaction/initialize", {
       method: "POST",
@@ -25,7 +25,7 @@ const walletService = {
           checkoutSessionId,
           noteForRider,
           noteForVendor,
-          paymentMethod
+          paymentMethod,
         },
       }),
     });

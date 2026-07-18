@@ -280,7 +280,7 @@ export class AuthService {
     if (user.role === UserRole.VENDOR) {
       hasProfile =
         (await Vendor.countDocuments({
-          owner: user._id.toString()
+          owner: user._id.toString(),
         })) > 0;
     }
 

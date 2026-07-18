@@ -1,5 +1,6 @@
 import { IAddon } from "@modules/menus/menu.types";
-import { IAddress, UserRole } from "@modules/users/user.types";
+import { IAddress } from "@modules/users/user.types";
+import { UserRole } from "@shared/types/enums";
 import {
   orderTypes,
   PAYMENT_METHODS,
@@ -117,7 +118,6 @@ export type IOrder = {
   cancellationReason?: string;
 };
 
-
 export type TUpdateOrderStatusPayload = {
   status: statusHistoryStates;
   statusTimeline: IStatusHistory[];
@@ -126,7 +126,6 @@ export type TUpdateOrderStatusPayload = {
   actualPrepTime?: number;
   prepTimeEstimate?: number;
   cancelledByUserId?: string;
-  
 };
 
 export type TProcessRefundPayload = {

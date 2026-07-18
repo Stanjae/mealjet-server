@@ -18,13 +18,13 @@ const deliverySchema = new Schema<IDelivery>(
       },
     ],
     status: {
-        type: String,
-        enum:{
-            values: Object.values(DeliveryStatus),
-        }
-    }
+      type: String,
+      enum: {
+        values: Object.values(DeliveryStatus),
+      },
+    },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 const Delivery = model<IDelivery>("Delivery", deliverySchema);

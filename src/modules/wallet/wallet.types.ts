@@ -1,4 +1,3 @@
-
 import { WALLET_TYPES } from "@shared/constants/wallet.constants";
 import { Document, Types } from "mongoose";
 

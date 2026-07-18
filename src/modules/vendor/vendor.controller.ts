@@ -19,14 +19,18 @@ export const createVendor = asyncHandler(
 
 export const profileCount = asyncHandler(
   async (req: Request, res: Response) => {
-    const result = await vendorService.profileCount(req?.user?._id.toString() as string);
-    ApiResponse.success(res, {count:result.vendorCount}, result.message);
+    const result = await vendorService.profileCount(
+      req?.user?._id.toString() as string,
+    );
+    ApiResponse.success(res, { count: result.vendorCount }, result.message);
   },
 );
 
 export const getVendorProfiles = asyncHandler(
   async (req: Request, res: Response) => {
-    const result = await vendorService.getVendorProfiles(req?.user?._id.toString() as string);
+    const result = await vendorService.getVendorProfiles(
+      req?.user?._id.toString() as string,
+    );
     ApiResponse.success(res, { vendors: result.vendors }, result.message);
   },
 );
@@ -40,7 +44,9 @@ export const getAllVendors = asyncHandler(
 
 export const getVendorProfile = asyncHandler(
   async (req: Request, res: Response) => {
-    const result = await vendorService.getVendorProfile(req.params.vendorId as string);
+    const result = await vendorService.getVendorProfile(
+      req.params.vendorId as string,
+    );
     ApiResponse.success(res, { vendor: result.vendor }, result.message);
   },
 );

@@ -2,7 +2,6 @@ import { Schema } from "mongoose";
 import { IBankDetails, ILocation, TSupportingDocuments } from "./shared.types";
 import { IAddress } from "@modules/users/user.types";
 
-
 export const bankDetailsSchema = new Schema<IBankDetails>(
   {
     bankName: { type: String, required: true },

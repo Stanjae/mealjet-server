@@ -34,7 +34,10 @@ export class VendorService {
       proof_of_registration: proofOfReg.url,
       proof_of_identification: proofOfId.url,
       location: {
-        coordinates: [data.address.coordinates.lng, data.address.coordinates.lat],
+        coordinates: [
+          data.address.coordinates.lng,
+          data.address.coordinates.lat,
+        ],
         type: "Point",
       },
       address: data.address,
@@ -54,8 +57,7 @@ export class VendorService {
   }
 
   async getVendorProfiles(userId: string) {
-    const vendors = await Vendor.find({ owner: userId })
-      .select("-bankDetails");
+    const vendors = await Vendor.find({ owner: userId }).select("-bankDetails");
 
     const serializedVendors = vendors.map((vendor) =>
       sanitizeToId(vendor.toObject({ virtuals: true })),
@@ -68,7 +70,9 @@ export class VendorService {
   }
 
   async getAllVendors() {
-    const vendors = await Vendor.find({ status: "active" }).select("-bankDetails");
+    const vendors = await Vendor.find({ status: "active" }).select(
+      "-bankDetails",
+    );
 
     const serializedVendors = vendors.map((vendor) =>
       sanitizeToId(vendor.toObject({ virtuals: true })),
@@ -81,8 +85,9 @@ export class VendorService {
   }
 
   async getVendorProfile(vendorSlug: string) {
-    const vendor = await Vendor.findOne({ slug: vendorSlug })
-      .select("-bankDetails");
+    const vendor = await Vendor.findOne({ slug: vendorSlug }).select(
+      "-bankDetails",
+    );
 
     if (!vendor) {
       throw new AppError(404, "Vendor not found");

@@ -1,5 +1,5 @@
 // src/shared/types/express.d.ts
-import { IUserDocument } from '@modules/users/user.model';
+import { IUserDocument } from "@modules/users/user.model";
 
 declare global {
   namespace Express {

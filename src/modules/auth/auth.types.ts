@@ -1,24 +1,24 @@
-import { UserRole } from '@modules/users/user.types';
+import { UserRole } from "@shared/types/enums";
 
 export interface RegisterDto {
-  username:     string;
-  email:    string;
+  username: string;
+  email: string;
   password: string;
-  role?:    UserRole;
-  phone?:   string;
+  role?: UserRole;
+  phone?: string;
 }
 
 export interface LoginDto {
-  email:    string;
+  email: string;
   password: string;
 }
 
 export interface AuthTokens {
-  accessToken:  string;
+  accessToken: string;
   refreshToken: string;
 }
 
 export interface AuthResponse {
-  user:   object;
+  user: object;
   tokens: AuthTokens;
 }

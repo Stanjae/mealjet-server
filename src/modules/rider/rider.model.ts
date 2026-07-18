@@ -6,7 +6,11 @@ import {
 import { decrypt, encrypt } from "@shared/utils/helpers";
 import mongoose, { Schema } from "mongoose";
 import { IRiderDocument, IRiderModel, TRider } from "./rider.types";
-import { addressSchema, bankDetailsSchema, PointSchema } from "@shared/models/shared.models";
+import {
+  addressSchema,
+  bankDetailsSchema,
+  PointSchema,
+} from "@shared/models/shared.models";
 import { IBankDetails } from "@shared/models/shared.types";
 
 // ─── Main schema ───────────────────────

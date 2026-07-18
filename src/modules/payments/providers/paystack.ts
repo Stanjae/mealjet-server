@@ -3,14 +3,13 @@ import { TInitializePaymentProviderPayload } from "../payment.types";
 
 const paystackService = {
   initializePayment: async ({
-      customer,
-      grandTotal,
-      checkoutSessionId,
-      noteForRider,
-      noteForVendor,
-      paymentMethod
-    }: TInitializePaymentProviderPayload
-  ) => {
+    customer,
+    grandTotal,
+    checkoutSessionId,
+    noteForRider,
+    noteForVendor,
+    paymentMethod,
+  }: TInitializePaymentProviderPayload) => {
     const res = await fetch("https://api.paystack.co/transaction/initialize", {
       method: "POST",
       headers: {
@@ -26,7 +25,7 @@ const paystackService = {
           checkoutSessionId,
           noteForRider,
           noteForVendor,
-          paymentMethod
+          paymentMethod,
         },
       }),
     });

@@ -158,15 +158,12 @@ export const getCustomerOrdersSummary = asyncHandler(
 export const revalidateCheckoutSession = asyncHandler(
   async (req: Request, res: Response) => {
     const { orderId } = req.params;
-    const {message, ...restResult} = await orderService.revalidateCheckoutSession(
-      req.user as IUserDocument,
-      orderId as string,
-    );
+    const { message, ...restResult } =
+      await orderService.revalidateCheckoutSession(
+        req.user as IUserDocument,
+        orderId as string,
+      );
 
-    ApiResponse.success(
-      res,
-      restResult,
-      message,
-    );
+    ApiResponse.success(res, restResult, message);
   },
 );

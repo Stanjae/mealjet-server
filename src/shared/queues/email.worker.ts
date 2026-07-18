@@ -1,10 +1,7 @@
 import { Job, Worker } from "bullmq";
 import { logger } from "@shared/utils/logger.js";
 import { sendVerificationEmail } from "@shared/utils/email-util.js";
-import {
-  EMAIL_QUEUE_NAME,
-  type VerificationEmailJob,
-} from "./email.queue.js";
+import { EMAIL_QUEUE_NAME, type VerificationEmailJob } from "./email.queue.js";
 import { workerConnection } from "./queue-connection.js";
 
 let emailWorker: Worker<VerificationEmailJob> | null = null;

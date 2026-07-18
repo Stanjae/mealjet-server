@@ -7,7 +7,10 @@ import { redis } from "@shared/config/redis";
 import { AppError } from "@shared/middleware/error.middleware";
 import { getPaymentProvider } from "./utils/getPaymentProvider";
 import { IFullCheckoutSummary } from "@modules/orders/orders.types";
-import { calculateEstimatedDelivery, generateOrderNumber } from "@shared/utils/helpers";
+import {
+  calculateEstimatedDelivery,
+  generateOrderNumber,
+} from "@shared/utils/helpers";
 import Order from "@modules/orders/orders.model";
 import Transaction from "@modules/transaction/transaction.model";
 import Vendor from "@modules/vendor/vendor.model";
@@ -94,8 +97,10 @@ class PaymentService {
         );
 
         const totalQty =
-          vendor.items.reduce((acc, item) => acc + Number(item.quantity || 0), 0) ||
-          1;
+          vendor.items.reduce(
+            (acc, item) => acc + Number(item.quantity || 0),
+            0,
+          ) || 1;
 
         const weightedItemPrep =
           vendor.items.reduce((acc, item) => {
@@ -113,9 +118,7 @@ class PaymentService {
         const orderPrepMins = Math.max(
           vendorAvgPrep,
           Math.round(
-            0.6 * weightedItemPrep +
-              0.4 * maxItemPrep +
-              complexityPenalty,
+            0.6 * weightedItemPrep + 0.4 * maxItemPrep + complexityPenalty,
           ),
         );
 
@@ -132,7 +135,12 @@ class PaymentService {
           items: vendor.items,
           status: "pending",
           statusHistory: [
-            { status: "pending", timestamp: new Date(), updatedBy: customerId, updatedByUserRole:'customer' },
+            {
+              status: "pending",
+              timestamp: new Date(),
+              updatedBy: customerId,
+              updatedByUserRole: "customer",
+            },
           ],
           deliveryAddress: user.toObject().currentAddress,
           calculatedDistanceKm: Number(vendor.calculatedDistanceKm),

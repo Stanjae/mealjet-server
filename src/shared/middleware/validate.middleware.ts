@@ -1,15 +1,14 @@
-
-import { Request, Response, NextFunction } from 'express';
-import { validationResult } from 'express-validator';
-import { ApiResponse } from '@shared/utils/api-response.js';
-import { ZodType, ZodError } from 'zod/v4';
+import { Request, Response, NextFunction } from "express";
+import { validationResult } from "express-validator";
+import { ApiResponse } from "@shared/utils/api-response.js";
+import { ZodType, ZodError } from "zod/v4";
 
 const normalizeBooleanStrings = (value: unknown): unknown => {
-  if (typeof value === 'string') {
+  if (typeof value === "string") {
     const normalizedValue = value.trim().toLowerCase();
 
-    if (normalizedValue === 'true') return true;
-    if (normalizedValue === 'false') return false;
+    if (normalizedValue === "true") return true;
+    if (normalizedValue === "false") return false;
 
     const looksLikeDate = /^\d{4}-\d{2}-\d{2}(?:[T\s].+)?$/.test(value.trim());
     if (!looksLikeDate) return value;
@@ -22,17 +21,25 @@ const normalizeBooleanStrings = (value: unknown): unknown => {
     return value.map((item) => normalizeBooleanStrings(item));
   }
 
-  if (value && typeof value === 'object') {
+  if (value && typeof value === "object") {
     return Object.fromEntries(
-      Object.entries(value).map(([key, nestedValue]) => [key, normalizeBooleanStrings(nestedValue)])
+      Object.entries(value).map(([key, nestedValue]) => [
+        key,
+        normalizeBooleanStrings(nestedValue),
+      ]),
     );
   }
 
   return value;
 };
 
-const normalizeUploadedFiles = (req: Request): Record<string, Express.Multer.File | Express.Multer.File[]> => {
-  const normalizedFiles: Record<string, Express.Multer.File | Express.Multer.File[]> = {};
+const normalizeUploadedFiles = (
+  req: Request,
+): Record<string, Express.Multer.File | Express.Multer.File[]> => {
+  const normalizedFiles: Record<
+    string,
+    Express.Multer.File | Express.Multer.File[]
+  > = {};
 
   if (req.file) {
     normalizedFiles[req.file.fieldname] = req.file;
@@ -96,24 +103,38 @@ const mergeBodyAndFiles = (
   return merged;
 };
 
-export function validate(req: Request, res: Response, next: NextFunction): void {
+export function validate(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): void {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     const messages = errors.array().map((e) => e.msg as string);
-    ApiResponse.error(res, 'Validation failed', 422, messages);
+    ApiResponse.error(res, "Validation failed", 422, messages);
     return;
   }
   next();
 }
 
-export const validateWithSchema = (schema: ZodType) => 
-  (req: Request, res: Response, next: NextFunction) => {
-    const normalizedBody = normalizeBooleanStrings(req.body ?? {}) as Record<string, unknown>;
+export const validateWithSchema =
+  (schema: ZodType) => (req: Request, res: Response, next: NextFunction) => {
+    const normalizedBody = normalizeBooleanStrings(req.body ?? {}) as Record<
+      string,
+      unknown
+    >;
     const normalizedFiles = normalizeUploadedFiles(req);
-    const result = schema.safeParse(mergeBodyAndFiles(normalizedBody, normalizedFiles));
+    const result = schema.safeParse(
+      mergeBodyAndFiles(normalizedBody, normalizedFiles),
+    );
 
     if (!result.success) {
-      return ApiResponse.error(res, 'Validation failed', 422, formatZodErrors(result.error));
+      return ApiResponse.error(
+        res,
+        "Validation failed",
+        422,
+        formatZodErrors(result.error),
+      );
     }
 
     req.body = result.data; // replace body with parsed/validated data
@@ -122,7 +143,7 @@ export const validateWithSchema = (schema: ZodType) =>
 
 const formatZodErrors = (error: ZodError) => {
   return error.issues.map((e) => ({
-    field: e.path.length ? e.path.join('.') : 'root',
+    field: e.path.length ? e.path.join(".") : "root",
     message: e.message,
   }));
 };

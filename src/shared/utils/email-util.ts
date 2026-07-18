@@ -1,6 +1,6 @@
-import { Resend } from 'resend';
-import { env } from '@shared/config/env.js';
-import { logger } from './logger.js';
+import { Resend } from "resend";
+import { env } from "@shared/config/env.js";
+import { logger } from "./logger.js";
 
 const resend = new Resend(env.RESEND_API_KEY);
 
@@ -22,24 +22,31 @@ export async function sendEmail(options: EmailOptions): Promise<void> {
     });
 
     if (error) {
-      logger.error('Resend email error:', error);
+      logger.error("Resend email error:", error);
       throw new Error(`Failed to send email: ${error.message}`);
     }
 
     logger.info(`Email sent successfully: ${data?.id}`);
   } catch (error) {
-    logger.error('Email sending failed:', error);
+    logger.error("Email sending failed:", error);
     throw error;
   }
 }
 
 // Email templates
-export async function sendVerificationEmail(to: string, name: string, token: string, isLogin?: boolean): Promise<void> {
-  const verificationUrl = `${env.CLIENT_URL}/auth/account-verification?token=${token}` + (isLogin ? '&context=login' : '');
+export async function sendVerificationEmail(
+  to: string,
+  name: string,
+  token: string,
+  isLogin?: boolean,
+): Promise<void> {
+  const verificationUrl =
+    `${env.CLIENT_URL}/auth/account-verification?token=${token}` +
+    (isLogin ? "&context=login" : "");
 
   await sendEmail({
     to,
-    subject: 'Verify your email address',
+    subject: "Verify your email address",
     html: `
       <h2>Welcome to MealJet!, ${name}</h2>
       <p>Please verify your email address by clicking the link below:</p>
@@ -54,12 +61,15 @@ export async function sendVerificationEmail(to: string, name: string, token: str
   });
 }
 
-export async function sendPasswordResetEmail(to: string, token: string): Promise<void> {
+export async function sendPasswordResetEmail(
+  to: string,
+  token: string,
+): Promise<void> {
   const resetUrl = `${env.CLIENT_URL}/reset-password?token=${token}`;
 
   await sendEmail({
     to,
-    subject: 'Reset your password',
+    subject: "Reset your password",
     html: `
       <h2>Password Reset Request</h2>
       <p>You requested to reset your password. Click the link below to proceed:</p>
@@ -77,9 +87,11 @@ export async function sendPasswordResetEmail(to: string, token: string): Promise
 
 export async function sendOrderConfirmationEmail(
   to: string,
-  orderDetails: { orderId: string; total: number; items: string[] }
+  orderDetails: { orderId: string; total: number; items: string[] },
 ): Promise<void> {
-  const itemsList = orderDetails.items.map((item) => `<li>${item}</li>`).join('');
+  const itemsList = orderDetails.items
+    .map((item) => `<li>${item}</li>`)
+    .join("");
 
   await sendEmail({
     to,
@@ -96,10 +108,13 @@ export async function sendOrderConfirmationEmail(
   });
 }
 
-export async function sendWelcomeEmail(to: string, name: string): Promise<void> {
+export async function sendWelcomeEmail(
+  to: string,
+  name: string,
+): Promise<void> {
   await sendEmail({
     to,
-    subject: 'Welcome to MealJet!',
+    subject: "Welcome to MealJet!",
     html: `
       <h2>Welcome, ${name}!</h2>
       <p>We're excited to have you on board.</p>

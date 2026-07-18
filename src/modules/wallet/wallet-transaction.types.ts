@@ -43,7 +43,6 @@ export interface IWalletTransaction {
 }
 
 export interface IWalletTransactionDocument
-  extends IWalletTransaction,
-    Document {
+  extends IWalletTransaction, Document {
   _id: Types.ObjectId;
 }

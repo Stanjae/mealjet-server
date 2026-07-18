@@ -127,10 +127,7 @@ MenuItemSchema.index({ name: "text", description: "text", tags: "text" }); // fu
 MenuItemSchema.index({ vendor: 1, category: 1 }); // scoped menu listing
 MenuItemSchema.index({ vendor: 1, isAvailable: 1 }); // filter available items
 MenuItemSchema.index({ vendor: 1, orderCount: -1 }); // popularity ranking
-MenuItemSchema.index(
-  { vendor: 1, slug: 1 },
-  { unique: true, sparse: true },
-);
+MenuItemSchema.index({ vendor: 1, slug: 1 }, { unique: true, sparse: true });
 
 // ─── Virtuals ────────────────────────────────────────────────────────────────
 

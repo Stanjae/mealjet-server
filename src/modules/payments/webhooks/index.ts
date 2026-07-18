@@ -10,7 +10,7 @@ export const handlePaystackWebhook = async (req: Request, res: Response) => {
     .update(req.body)
     .digest("hex");
 
-    console.log("Received Paystack webhook, verifying signature...", hash);
+  console.log("Received Paystack webhook, verifying signature...", hash);
 
   if (hash !== req.headers["x-paystack-signature"]) {
     console.log("Invalid Paystack webhook signature");
@@ -18,7 +18,10 @@ export const handlePaystackWebhook = async (req: Request, res: Response) => {
   }
 
   // STEP B: Respond to Paystack immediately (within 5 seconds)
-  console.log("Received webhook from Paystack, responding with 200 OK", req.headers);
+  console.log(
+    "Received webhook from Paystack, responding with 200 OK",
+    req.headers,
+  );
   res.sendStatus(200);
 
   // STEP C: Process the event asynchronously
@@ -36,6 +39,6 @@ export const handlePaystackWebhook = async (req: Request, res: Response) => {
     }
   } catch (err) {
     logger.error(err);
-    console.log("an error occurred",err);
+    console.log("an error occurred", err);
   }
 };

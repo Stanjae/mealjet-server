@@ -1,9 +1,8 @@
 import mongoose, { Schema } from "mongoose";
 import { IOpeningHour, IVendor } from "./vendor.types";
-import { decrypt, encrypt, newDayJs} from "@shared/utils/helpers";
+import { decrypt, encrypt, newDayJs } from "@shared/utils/helpers";
 import { addressSchema, bankDetailsSchema } from "@shared/models/shared.models";
 import { IBankDetails } from "@shared/models/shared.types";
-
 
 const openingHourSchema = new Schema<IOpeningHour>(
   {
@@ -180,25 +179,22 @@ vendorSchema.index({ owner: 1, status: 1 }); // vendor dashboard queries
 // Encrypt bank details before saving
 // ─────────────────────────────────────────
 
-vendorSchema.pre<IVendor>(
-  "save",
-  function (this: IVendor): void {
-    try {
-      if (this.isModified("bankDetails")) {
-        const bd = this.bankDetails;
+vendorSchema.pre<IVendor>("save", function (this: IVendor): void {
+  try {
+    if (this.isModified("bankDetails")) {
+      const bd = this.bankDetails;
 
-        if (bd.accountNumber) bd.accountNumber = encrypt(bd.accountNumber);
-        if (bd.bankName) bd.bankName = encrypt(bd.bankName);
-        if (bd.accountName) bd.accountName = encrypt(bd.accountName);
+      if (bd.accountNumber) bd.accountNumber = encrypt(bd.accountNumber);
+      if (bd.bankName) bd.bankName = encrypt(bd.bankName);
+      if (bd.accountName) bd.accountName = encrypt(bd.accountName);
 
-        // Explicitly mark the field as modified
-        this.markModified("bankDetails");
-      }
-    } catch (error: any) {
-      throw new Error(`Failed to encrypt bank details: ${error?.message}`);
+      // Explicitly mark the field as modified
+      this.markModified("bankDetails");
     }
-  },
-);
+  } catch (error: any) {
+    throw new Error(`Failed to encrypt bank details: ${error?.message}`);
+  }
+});
 
 // ─────────────────────────────────────────
 // Decrypt bank details when reading
@@ -226,17 +222,26 @@ vendorSchema.pre("save", function () {
         .trim()
         .replace(/[^a-z0-9\s-]/g, "")
         .replace(/\s+/g, "-")
-        .replace(/-+/g, "-") + "-" + Math.random().toString(36).slice(2, 7);
+        .replace(/-+/g, "-") +
+      "-" +
+      Math.random().toString(36).slice(2, 7);
   }
 });
 
 vendorSchema.virtual("isOpen").get(function (this: IVendor) {
   const now = newDayJs();
   const today = now.format("d");
-  const openingHours = Array.isArray(this.openingHours) ? this.openingHours : [];
+  const openingHours = Array.isArray(this.openingHours)
+    ? this.openingHours
+    : [];
 
   const openDayObj = openingHours.find((item) => item.day === today);
-  if (!openDayObj || openDayObj.isClosed || !openDayObj.openTime || !openDayObj.closeTime) {
+  if (
+    !openDayObj ||
+    openDayObj.isClosed ||
+    !openDayObj.openTime ||
+    !openDayObj.closeTime
+  ) {
     return false;
   }
 
@@ -253,7 +258,11 @@ vendorSchema.virtual("isOpen").get(function (this: IVendor) {
   }
 
   const openAt = now.hour(openHour).minute(openMinute).second(0).millisecond(0);
-  let closeAt = now.hour(closeHour).minute(closeMinute).second(0).millisecond(0);
+  let closeAt = now
+    .hour(closeHour)
+    .minute(closeMinute)
+    .second(0)
+    .millisecond(0);
 
   // Handle overnight schedules like 20:00 -> 02:00.
   if (closeAt.isBefore(openAt)) {

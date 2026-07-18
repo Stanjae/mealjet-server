@@ -13,10 +13,9 @@ export const objectIdSchema = () =>
 export const emailSchema = () => z.email("Please enter a valid email address");
 
 export const dobSchema = () =>
-  z.coerce
-    .date({
-      error: 'Date of birth is required',
-    });
+  z.coerce.date({
+    error: "Date of birth is required",
+  });
 
 export const passwordSchema = () =>
   z

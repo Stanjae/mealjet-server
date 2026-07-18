@@ -1,6 +1,5 @@
 import { newDayJs } from "@shared/utils/helpers";
 
-
 export const CUISINE_TYPES = [
   // African
   "Nigerian",
@@ -40,11 +39,26 @@ export const CUISINE_TYPES = [
   "Smoothies & Drinks",
 ] as const;
 
-export type CuisineType = typeof CUISINE_TYPES[number];
+export type CuisineType = (typeof CUISINE_TYPES)[number];
 
-export const RESTAURANT_TAGS = ['halal', 'vegan', 'vegetarian', 'fast-delivery', 'kosher', 'gluten-free', 'organic']
+export const RESTAURANT_TAGS = [
+  "halal",
+  "vegan",
+  "vegetarian",
+  "fast-delivery",
+  "kosher",
+  "gluten-free",
+  "organic",
+];
 
+export const DAYS = Array.from({ length: 7 }, (_, i) => ({
+  value: i.toString(),
+  label: newDayJs().day(i).format("dddd"),
+}));
 
-export const DAYS = Array.from({ length: 7 }, (_, i) => ({value: i.toString(), label: newDayJs().day(i).format('dddd')}));
-
-export const vendorStatus = ['pending_approval', 'active', 'suspended', 'closed']
+export const vendorStatus = [
+  "pending_approval",
+  "active",
+  "suspended",
+  "closed",
+];

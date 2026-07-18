@@ -1,8 +1,5 @@
 import { IAddress } from "@modules/users/user.types";
-import {
-  IBankDetails,
-  ILocation,
-} from "@shared/models/shared.types";
+import { IBankDetails, ILocation } from "@shared/models/shared.types";
 import {
   AvailabilityStatus,
   RiderStatus,

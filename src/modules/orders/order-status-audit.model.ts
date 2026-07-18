@@ -1,12 +1,12 @@
-import { statusHistoryStates } from '@shared/constants/orders.constants';
-import { UserRole } from '@shared/types/enums';
-import { model, Schema } from 'mongoose';
+import { statusHistoryStates } from "@shared/constants/orders.constants";
+import { UserRole } from "@shared/types/enums";
+import { model, Schema } from "mongoose";
 
 const orderStatusAuditSchema = new Schema(
   {
     order: {
       type: Schema.Types.ObjectId,
-      ref: 'Order',
+      ref: "Order",
       required: true,
       index: true,
     },
@@ -23,7 +23,7 @@ const orderStatusAuditSchema = new Schema(
     },
     actorUser: {
       type: Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
       required: true,
     },
     actorRole: {
@@ -34,7 +34,12 @@ const orderStatusAuditSchema = new Schema(
     },
     source: {
       type: String,
-      enum: ['vendor_update', 'dispatch_accept', 'rider_update', 'vendor_retry'],
+      enum: [
+        "vendor_update",
+        "dispatch_accept",
+        "rider_update",
+        "vendor_retry",
+      ],
       required: true,
     },
     meta: {
@@ -45,6 +50,6 @@ const orderStatusAuditSchema = new Schema(
   { timestamps: true },
 );
 
-const OrderStatusAudit = model('OrderStatusAudit', orderStatusAuditSchema);
+const OrderStatusAudit = model("OrderStatusAudit", orderStatusAuditSchema);
 
 export default OrderStatusAudit;

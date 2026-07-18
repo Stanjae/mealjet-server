@@ -23,17 +23,18 @@ class MenuCategoryService {
   async getMenuCategories(vendorId: string, page = 1, search?: string) {
     const currentPage = Number.isInteger(page) && page > 0 ? page : 1;
     const skip = (currentPage - 1) * MENU_CATEGORIES_PER_PAGE;
-    const filter:{ [key: string]: any} = { vendorId };
+    const filter: { [key: string]: any } = { vendorId };
 
     if (search) {
-      filter['name'] = { $regex: search, $options: 'i' };
+      filter["name"] = { $regex: search, $options: "i" };
     }
 
     const [menuCategories, total] = await Promise.all([
       MenuCategory.find(filter)
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(MENU_CATEGORIES_PER_PAGE).lean(),
+        .limit(MENU_CATEGORIES_PER_PAGE)
+        .lean(),
       MenuCategory.countDocuments(filter),
     ]);
 
@@ -49,15 +50,16 @@ class MenuCategoryService {
     };
   }
 
-    async updateMenuCategory(payload: TCreateMeuCategoryPayload) {
-
+  async updateMenuCategory(payload: TCreateMeuCategoryPayload) {
     const { id, vendorId, ...rest } = payload;
     const vendor = await Vendor.findById(vendorId);
     if (!vendor) {
       throw new AppError(404, "Invalid vendor ID");
     }
 
-    const menuCategory = await MenuCategory.findByIdAndUpdate(id, rest, { returnDocument: "after" });
+    const menuCategory = await MenuCategory.findByIdAndUpdate(id, rest, {
+      returnDocument: "after",
+    });
     return {
       message: "Menu category updated successfully",
       data: menuCategory?.toObject(),
@@ -76,7 +78,9 @@ class MenuCategoryService {
   }
 
   async deleteMultipleMenuCategories(categoryIds: string[]) {
-    const deleteResult = await MenuCategory.deleteMany({ _id: { $in: categoryIds } });
+    const deleteResult = await MenuCategory.deleteMany({
+      _id: { $in: categoryIds },
+    });
     if (deleteResult.deletedCount === 0) {
       throw new AppError(404, "No menu categories found to delete");
     }

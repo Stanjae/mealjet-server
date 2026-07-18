@@ -1,10 +1,10 @@
-import { Request } from 'express';
+import { Request } from "express";
 
 export const emitToUser = (
   req: Request,
   userId: string,
   event: string,
-  data: unknown
+  data: unknown,
 ) => {
   const io = req.app.locals.io;
   const connectedUsers: Map<string, string> = req.app.locals.connectedUsers;
