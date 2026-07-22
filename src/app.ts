@@ -16,7 +16,7 @@ import menuRoutes from "@modules/menus/menu.routes.js";
 import orderRoutes from "@modules/orders/order.routes.js";
 import paymentRoutes from "@modules/payments/payment.routes.js";
 import riderRoutes from "@modules/rider/rider.routes.js";
-// import userRoutes         from '@modules/users/user.routes';
+import walletRoutes from "@modules/wallet/wallet.route.js";
 // import restaurantRoutes   from '@modules/restaurants/restaurant.routes';
 // import menuRoutes         from '@modules/menus/menu.routes';
 
@@ -88,6 +88,7 @@ export function createApp(): Application {
   app.use("/api/orders", orderRoutes);
   app.use("/api/payments", paymentRoutes);
   app.use("/api/rider", riderRoutes);
+  app.use("/api/wallet", walletRoutes);
   // app.use('/api/users',         userRoutes);
   // app.use('/api/restaurants',   restaurantRoutes);
   // app.use('/api/menus',         menuRoutes);
