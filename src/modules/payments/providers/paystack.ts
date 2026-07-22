@@ -10,7 +10,7 @@ const paystackService = {
     noteForVendor,
     paymentMethod,
   }: TInitializePaymentProviderPayload) => {
-    const res = await fetch("https://api.paystack.co/transaction/initialize", {
+    const res = await fetch(`${env.PAYSTACK_API_URL}/transaction/initialize`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${env.PAYSTACK_SECRET_KEY}`,

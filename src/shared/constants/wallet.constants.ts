@@ -3,3 +3,5 @@ export const WALLET_TYPES = [
   "vendor_earnings",
   "rider_earnings",
 ] as const;
+
+export const WALLET_STATUS = ["pending", "active", "suspended"] as const;

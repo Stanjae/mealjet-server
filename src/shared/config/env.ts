@@ -22,6 +22,7 @@ interface EnvConfig {
   BANK_DETAILS_ENCRYPTION_KEY: string;
   PAYSTACK_SECRET_KEY: string;
   PAYSTACK_PUBLIC_KEY: string;
+  PAYSTACK_API_URL?: string;
 }
 
 const required: (keyof EnvConfig)[] = [
@@ -36,6 +37,7 @@ const required: (keyof EnvConfig)[] = [
   "EMAIL_FROM",
   "PAYSTACK_SECRET_KEY",
   "PAYSTACK_PUBLIC_KEY",
+  "PAYSTACK_API_URL",
 ];
 
 function validateEnv(): EnvConfig {
@@ -63,6 +65,7 @@ function validateEnv(): EnvConfig {
     BANK_DETAILS_ENCRYPTION_KEY: process.env.BANK_DETAILS_ENCRYPTION_KEY!, // must be 32 chars
     PAYSTACK_SECRET_KEY: process.env.PAYSTACK_SECRET_KEY!,
     PAYSTACK_PUBLIC_KEY: process.env.PAYSTACK_PUBLIC_KEY!,
+    PAYSTACK_API_URL: process.env.PAYSTACK_API_URL || "https://api.paystack.co",
   };
 }
 

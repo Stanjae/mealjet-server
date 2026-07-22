@@ -1,6 +1,9 @@
 import { model, Schema } from "mongoose";
 import { IWalletDocument, WALLET_OWNER_MODELS } from "./wallet.types";
-import { WALLET_TYPES } from "@shared/constants/wallet.constants";
+import {
+  WALLET_STATUS,
+  WALLET_TYPES,
+} from "@shared/constants/wallet.constants";
 
 const walletSchema = new Schema<IWalletDocument>(
   {
@@ -45,6 +48,14 @@ const walletSchema = new Schema<IWalletDocument>(
       type: Boolean,
       default: true,
       index: true,
+    },
+    dedicatedBankAccount: {
+      type: Schema.Types.Mixed,
+    },
+    status: {
+      type: String,
+      enum: WALLET_STATUS,
+      required: true,
     },
   },
   {
