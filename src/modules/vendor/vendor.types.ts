@@ -1,4 +1,4 @@
-import { IAddress } from "@modules/users/user.types";
+import { IAddress } from "@modules/users";
 import { IBankDetails, ILocation } from "@shared/models/shared.types";
 import mongoose, { Document } from "mongoose";
 

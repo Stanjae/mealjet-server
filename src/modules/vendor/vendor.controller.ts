@@ -1,10 +1,10 @@
 import { asyncHandler } from "@shared/middleware/error.middleware";
 import { ApiResponse } from "@shared/utils/api-response";
 import { Request, Response } from "express";
-import { vendorService } from "./vendor.service";
 import { FullRestaurantData } from "@shared/schemas/vendor.schema";
 import { IVendorReqFiles } from "./vendor.types";
-import { IUserDocument } from "@modules/users/user.model";
+import { IUserDocument } from "@modules/users";
+import vendorService from "./vendor.service";
 
 export const createVendor = asyncHandler(
   async (req: Request, res: Response) => {

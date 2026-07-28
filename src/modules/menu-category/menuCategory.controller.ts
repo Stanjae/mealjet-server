@@ -1,9 +1,9 @@
 import { asyncHandler } from "@shared/middleware/error.middleware";
 import { ApiResponse } from "@shared/utils/api-response";
 import e, { Request, Response } from "express";
-import { menuCategoryService } from "./menuCategory.service";
 import { TCreateMeuCategoryPayload } from "./menuCategory.types";
 import { getPageFromQuery } from "@shared/utils/helpers";
+import menuCategoryService from "./menuCategory.service";
 
 export const createMenuCategory = asyncHandler(
   async (req: Request, res: Response) => {

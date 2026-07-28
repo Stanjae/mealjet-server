@@ -3,7 +3,7 @@ import { ApiResponse } from "@shared/utils/api-response";
 import { Request, Response } from "express";
 import paymentService from "./payment.service";
 import { TInitializePaymentPayload } from "./payment.types";
-import { IUserDocument } from "@modules/users/user.model";
+import { IUserDocument } from "@modules/users";
 
 export const initializePayment = asyncHandler(
   async (req: Request, res: Response) => {

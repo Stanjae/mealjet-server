@@ -1,26 +1,24 @@
 import crypto from "crypto";
-import { IUserDocument, UserModel } from "@modules/users/user.model.js";
 import { generateTokenPair } from "@shared/utils/jwt-util.js";
-import { redisSet, redisGet, redisDel } from "@shared/config/redis.js";
+import { redisSet, redisGet } from "@shared/config/redis.js";
 import { AppError } from "@shared/middleware/error.middleware";
 import { RegisterDto, LoginDto, AuthTokens } from "./auth.types";
 import { enqueueVerificationEmailJob } from "@shared/queues/email.queue.js";
-import Vendor from "@modules/vendor/vendor.model";
-import { IAddress, IUser } from "@modules/users/user.types";
+import { vendorService } from "@modules/vendor";
 import { ALLOWED_LOCATIONS } from "@shared/constants/auth.constants";
-import Rider from "@modules/rider/rider.model";
+import { riderService } from "@modules/rider";
 import { Request } from "express";
 import { UserRole } from "@shared/types/enums";
-
+import { IAddress, IUser, IUserDocument, userService } from "@modules/users";
 export class AuthService {
   // Register a new user and send email verification
   async register(dto: RegisterDto) {
-    const existing = await UserModel.findOne({
+    const existing = await userService.user().findOne({
       email: dto.email.toLowerCase(),
     });
     if (existing) throw new AppError(409, "Email already registered");
     try {
-      const user = await UserModel.create({
+      const user = await userService.user().create({
         username: dto.username,
         email: dto.email.toLowerCase(),
         passwordHash: dto.password, // Pre-save hook hashes it
@@ -46,7 +44,7 @@ export class AuthService {
   }
 
   async verifyNow(email: string) {
-    const existing = await UserModel.findOne({
+    const existing = await userService.user().findOne({
       email: email.toLowerCase().trim(),
     });
     if (!existing) throw new AppError(409, "User does not exist");
@@ -81,7 +79,7 @@ export class AuthService {
     if (!userId)
       throw new AppError(400, "Invalid or expired verification link");
 
-    const user = await UserModel.findOne({
+    const user = await userService.user().findOne({
       _id: userId,
       emailVerified: true,
       status: "active",
@@ -95,7 +93,7 @@ export class AuthService {
       };
     }
 
-    await UserModel.findByIdAndUpdate(userId, {
+    await userService.user().findByIdAndUpdate(userId, {
       emailVerified: true,
       status: "active",
     });
@@ -110,9 +108,12 @@ export class AuthService {
   async login(dto: LoginDto): Promise<{ user: object; tokens: AuthTokens }> {
     // Select passwordHash explicitly (it has select:false on schema)
     let hasProfile = false;
-    const user = await UserModel.findOne({
-      email: dto.email.toLowerCase(),
-    }).select("+passwordHash +refreshTokens");
+    const user = await userService
+      .user()
+      .findOne({
+        email: dto.email.toLowerCase(),
+      })
+      .select("+passwordHash +refreshTokens");
 
     if (!user) throw new AppError(401, "Invalid email or password");
 
@@ -132,12 +133,14 @@ export class AuthService {
 
     if (user.role === UserRole.VENDOR) {
       hasProfile =
-        (await Vendor.countDocuments({ owner: user._id.toString() })) > 0;
+        (await vendorService
+          .vendor()
+          .countDocuments({ owner: user._id.toString() })) > 0;
     }
 
     if (user.role === UserRole.RIDER) {
       hasProfile =
-        (await Rider.findOne({
+        (await riderService.rider().findOne({
           owner: user._id.toString(),
           status: "active",
         })) !== null;
@@ -172,12 +175,12 @@ export class AuthService {
       .createHash("sha256")
       .update(refreshToken)
       .digest("hex");
-    await UserModel.findByIdAndUpdate(userId, {
+    await userService.user().findByIdAndUpdate(userId, {
       $pull: { refreshTokens: tokenHash },
     }); */
 
     //log-out from all devices (remove all refresh tokens)
-    await UserModel.findByIdAndUpdate(userId, {
+    await userService.user().findByIdAndUpdate(userId, {
       $set: { refreshTokens: [] },
     });
   }
@@ -216,11 +219,14 @@ export class AuthService {
         ],
       };
     }
-    const updatedUser = await UserModel.findByIdAndUpdate(
-      existingUser._id,
-      { $set: updateData },
-      { returnDocument: "after" },
-    ).select("-passwordHash -refreshTokens");
+    const updatedUser = await userService
+      .user()
+      .findByIdAndUpdate(
+        existingUser._id,
+        { $set: updateData },
+        { returnDocument: "after" },
+      )
+      .select("-passwordHash -refreshTokens");
     if (!updatedUser) {
       throw new AppError(404, "User not found");
     }
@@ -231,11 +237,14 @@ export class AuthService {
   }
 
   async deleteUserAddress(user: IUserDocument, addressId: string) {
-    const updatedUser = await UserModel.findByIdAndUpdate(
-      user._id,
-      { $pull: { savedAddresses: { _id: addressId } } },
-      { returnDocument: "after" },
-    ).select("-passwordHash -refreshTokens");
+    const updatedUser = await userService
+      .user()
+      .findByIdAndUpdate(
+        user._id,
+        { $pull: { savedAddresses: { _id: addressId } } },
+        { returnDocument: "after" },
+      )
+      .select("-passwordHash -refreshTokens");
     if (!updatedUser) {
       throw new AppError(404, "User not found");
     }
@@ -259,11 +268,14 @@ export class AuthService {
         coordinates: [updates.coordinates.lng, updates.coordinates.lat],
       };
     }
-    const updatedUser = await UserModel.findByIdAndUpdate(
-      existingUser._id,
-      { $set: updateData },
-      { returnDocument: "after" },
-    ).select("-passwordHash -refreshTokens");
+    const updatedUser = await userService
+      .user()
+      .findByIdAndUpdate(
+        existingUser._id,
+        { $set: updateData },
+        { returnDocument: "after" },
+      )
+      .select("-passwordHash -refreshTokens");
     if (!updatedUser) {
       throw new AppError(404, "User not found");
     }
@@ -279,14 +291,14 @@ export class AuthService {
 
     if (user.role === UserRole.VENDOR) {
       hasProfile =
-        (await Vendor.countDocuments({
+        (await vendorService.vendor().countDocuments({
           owner: user._id.toString(),
         })) > 0;
     }
 
     if (user.role === UserRole.RIDER) {
       const profile =
-        (await Rider.findOne({
+        (await riderService.rider().findOne({
           owner: user._id.toString(),
           status: "active",
         })) !== null;

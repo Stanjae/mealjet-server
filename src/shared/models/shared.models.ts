@@ -1,6 +1,6 @@
 import { Schema } from "mongoose";
 import { IBankDetails, ILocation, TSupportingDocuments } from "./shared.types";
-import { IAddress } from "@modules/users/user.types";
+import { IAddress } from "@modules/users";
 
 export const bankDetailsSchema = new Schema<IBankDetails>(
   {

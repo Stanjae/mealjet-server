@@ -1,4 +1,3 @@
-import { IUserDocument, UserModel } from "@modules/users/user.model";
 import {
   THandlePaymentSuccessDataPayload,
   TInitializePaymentPayload,
@@ -6,17 +5,11 @@ import {
 import { redis } from "@shared/config/redis";
 import { AppError } from "@shared/middleware/error.middleware";
 import { getPaymentProvider } from "./utils/getPaymentProvider";
-import { IFullCheckoutSummary } from "@modules/orders/orders.types";
-import {
-  calculateEstimatedDelivery,
-  generateOrderNumber,
-} from "@shared/utils/helpers";
-import Order from "@modules/orders/orders.model";
-import Transaction from "@modules/transaction/transaction.model";
-import Vendor from "@modules/vendor/vendor.model";
-import MenuItem from "@modules/menus/menu.model";
+import { IFullCheckoutSummary, orderService } from "@modules/orders";
 import { emitToUser } from "@shared/utils/socket.io";
 import { Request } from "express";
+import { IUserDocument } from "@modules/users";
+import { transactionService } from "@modules/transaction";
 
 class PaymentService {
   async initializePaymentService(
@@ -66,7 +59,9 @@ class PaymentService {
     const { reference, amount, metadata } = data;
     const { customerId, checkoutSessionId } = metadata;
 
-    const existingTransaction = await Transaction.findOne({ reference });
+    const existingTransaction = await transactionService
+      .transaction()
+      .findOne({ reference });
     if (existingTransaction) return;
 
     // 1. Get cached summary from Redis
@@ -75,98 +70,17 @@ class PaymentService {
 
     const { summary } = JSON.parse(cached) as IFullCheckoutSummary;
 
-    const user = await UserModel.findById(customerId);
-    if (!user) return; // user not found, handle gracefully
-
-    // 2. Create one order per vendor
-    const orders = await Promise.all(
-      summary.newCart.map(async (vendor, index) => {
-        const orderNumber = await generateOrderNumber();
-
-        const vendorData = await Vendor.findById(vendor.vendorId);
-
-        const vendorAvgPrep = vendorData?.avgPrepTime ?? 15;
-
-        const menuIds = vendor.items.map((item) => item.id);
-        const menuDocs = await MenuItem.find({ _id: { $in: menuIds } })
-          .select("_id prepTime")
-          .lean();
-
-        const prepByMenuId = new Map(
-          menuDocs.map((menu) => [menu._id.toString(), menu.prepTime]),
-        );
-
-        const totalQty =
-          vendor.items.reduce(
-            (acc, item) => acc + Number(item.quantity || 0),
-            0,
-          ) || 1;
-
-        const weightedItemPrep =
-          vendor.items.reduce((acc, item) => {
-            const itemPrep = prepByMenuId.get(item.id) ?? vendorAvgPrep;
-            return acc + itemPrep * Number(item.quantity || 1);
-          }, 0) / totalQty;
-
-        const maxItemPrep = vendor.items.reduce((max, item) => {
-          const itemPrep = prepByMenuId.get(item.id) ?? vendorAvgPrep;
-          return Math.max(max, itemPrep);
-        }, 0);
-
-        const complexityPenalty = Math.max(vendor.items.length - 1, 0) * 1.5;
-
-        const orderPrepMins = Math.max(
-          vendorAvgPrep,
-          Math.round(
-            0.6 * weightedItemPrep + 0.4 * maxItemPrep + complexityPenalty,
-          ),
-        );
-
-        const newEta = calculateEstimatedDelivery(
-          Number(vendor?.calculatedDistanceKm),
-          orderPrepMins,
-        );
-
-        return Order.create({
-          orderNumber,
-          checkoutSessionId,
-          customer: customerId,
-          vendor: vendor.vendorId,
-          items: vendor.items,
-          status: "pending",
-          statusHistory: [
-            {
-              status: "pending",
-              timestamp: new Date(),
-              updatedBy: customerId,
-              updatedByUserRole: "customer",
-            },
-          ],
-          deliveryAddress: user.toObject().currentAddress,
-          calculatedDistanceKm: Number(vendor.calculatedDistanceKm),
-          deliveryLocation: user.toObject().location,
-          subtotal: vendor.calculatedSubtotal,
-          deliveryFee: vendor.vendorDeliveryFee,
-          prepTimeEstimate: orderPrepMins,
-          serviceFee: vendor.serviceCharge,
-          total: vendor.total,
-          paymentStatus: "paid",
-          paymentMethod: data.metadata.paymentMethod,
-          paymentReference: reference + "-" + index,
-          currency: "NGN",
-          orderType: "delivery",
-          promoCode: "",
-          customerNotes: metadata.noteForVendor || "",
-          noteForDriver: metadata.noteForRider || "",
-          discount: 0,
-          estimatedDeliveryTime: newEta.eta,
-          totalMinutesToDelivery: newEta.totalMinutes,
-          actualDeliveryTime: null,
-        });
-      }),
+    const orders = await orderService.createPaidOrdersFromCheckout(
+      summary,
+      checkoutSessionId,
+      customerId,
+      reference,
+      data.metadata.paymentMethod,
+      metadata.noteForRider,
+      metadata.noteForVendor,
     );
 
-    await Transaction.create({
+    await transactionService.transaction().create({
       reference,
       order: orders.map((o) => o._id.toString()), // all order IDs
       user: customerId,
@@ -181,8 +95,7 @@ class PaymentService {
 
     await Promise.all(
       orders.map(async (order) => {
-        const vendor = await Vendor.findById(order.vendor);
-        emitToUser(req, vendor?._id.toString() as string, "new_order", {
+        emitToUser(req, order.vendor.toString(), "new_order", {
           orderId: order._id,
           orderNumber: order.orderNumber,
           items: order.items,
@@ -213,7 +126,7 @@ class PaymentService {
     const { customerId, checkoutSessionId } = metadata;
 
     // Create a failed transaction record for audit
-    await Transaction.create({
+    await transactionService.transaction().create({
       reference: data.reference,
       user: customerId,
       type: "payment",

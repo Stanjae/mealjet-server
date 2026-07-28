@@ -1,5 +1,3 @@
-import { IAddon } from "@modules/menus/menu.types";
-import { IAddress } from "@modules/users/user.types";
 import { UserRole } from "@shared/types/enums";
 import {
   orderTypes,
@@ -10,6 +8,8 @@ import {
 } from "@shared/constants/orders.constants";
 import { ILocation } from "@shared/models/shared.types";
 import { Types } from "mongoose";
+import { IAddress } from "@modules/users";
+import { IAddon } from "@modules/menus";
 
 export type MJAddToCartItem = {
   title: string;

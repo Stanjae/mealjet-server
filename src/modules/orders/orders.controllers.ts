@@ -3,7 +3,7 @@ import { ApiResponse } from "@shared/utils/api-response";
 import { Request, Response } from "express";
 import { MJAddToCartItem } from "./orders.types";
 import orderService from "./orders.services";
-import { IUserDocument } from "@modules/users/user.model";
+import { IUserDocument } from "@modules/users";
 
 export const handleValidateCheckoutOrder = asyncHandler(
   async (req: Request, res: Response) => {

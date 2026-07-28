@@ -1,4 +1,4 @@
-import { IUserDocument } from "@modules/users/user.model";
+import { IUserDocument } from "@modules/users";
 
 export type TPaymentMenthod = "wallet" | "card" | "paystack" | "ussd";
 
