@@ -1,15 +1,15 @@
 import { asyncHandler } from "@shared/middleware/error.middleware";
 import { ApiResponse } from "@shared/utils/api-response";
 import { Request, Response } from "express";
-import { menuService } from "./menu.service";
 import {
   FullMenuItemPayload,
   UpdateMenuItemPayload,
   UpdateMenuItemStockStatusPayload,
 } from "@shared/schemas/menu.schema";
-import { IUserDocument } from "@modules/users/user.model";
 import { IMenuReqFiles } from "./menu.types";
 import { getPageFromQuery } from "@shared/utils/helpers";
+import menuService from "./menu.service";
+import { IUserDocument } from "@modules/users";
 
 export const createMenuItem = asyncHandler(
   async (req: Request, res: Response) => {

@@ -1,10 +1,13 @@
-import { IUserDocument, UserModel } from "@modules/users/user.model";
-import { IVendorReqFiles } from "@modules/vendor/vendor.types";
+import { IUserDocument, userService } from "@modules/users";
 import { FullRiderData } from "@shared/schemas/rider.schema";
 import { uploadToCloudinary } from "@shared/utils/cloudinary.service";
 import Rider from "./rider.model";
+import { IVendorReqFiles } from "@modules/vendor";
 
 export class RiderService {
+  rider() {
+    return Rider;
+  }
   async createRider(
     user: IUserDocument,
     data: FullRiderData,
@@ -31,7 +34,7 @@ export class RiderService {
       vehicle_document: vehicleDocument.url,
     });
 
-    await UserModel.findByIdAndUpdate(newUser._id, {
+    await userService.user().findByIdAndUpdate(newUser._id, {
       firstName: first_name,
       lastName: last_name,
       phone,
@@ -51,4 +54,5 @@ export class RiderService {
   }
 }
 
-export const riderService = new RiderService();
+const riderService = new RiderService();
+export default riderService;

@@ -12,7 +12,7 @@ import {
   TCreateDedicatedPaystackAccountPayload,
 } from "./wallet.types";
 import { env } from "@shared/config/env";
-import { IUserDocument } from "@modules/users/user.model";
+import { IUserDocument } from "@modules/users";
 
 type TBaseWalletOperationInput = TWalletOwnerInput & {
   amount: number;

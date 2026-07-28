@@ -1,4 +1,3 @@
-import { IUserDocument } from "@modules/users/user.model";
 import {
   FullMenuItemPayload,
   UpdateMenuItemPayload,
@@ -9,11 +8,15 @@ import { IMenuReqFiles } from "./menu.types";
 import MenuItem from "./menu.model";
 import { sanitizeToId } from "@shared/utils/helpers";
 import { AppError } from "@shared/middleware/error.middleware";
-import MenuCategory from "@modules/menu-category/menuCategory.model";
+import { menuCategoryService } from "@modules/menu-category";
+import { IUserDocument } from "@modules/users";
 
 const MENU_PER_PAGE = 10;
 
 export class MenuService {
+  menu() {
+    return MenuItem;
+  }
   async createMenuItem(
     user: IUserDocument,
     data: FullMenuItemPayload,
@@ -112,10 +115,12 @@ export class MenuService {
     // Handle category change manually
     if (data.category && !existing.category.equals(data.category)) {
       await Promise.all([
-        MenuCategory.findByIdAndUpdate(existing.category, {
-          $inc: { itemCount: -1 },
-        }),
-        MenuCategory.findByIdAndUpdate(data.category, {
+        menuCategoryService
+          .menuCategory()
+          .findByIdAndUpdate(existing.category, {
+            $inc: { itemCount: -1 },
+          }),
+        menuCategoryService.menuCategory().findByIdAndUpdate(data.category, {
           $inc: { itemCount: 1 },
         }),
       ]);
@@ -209,4 +214,5 @@ export class MenuService {
   }
 }
 
-export const menuService = new MenuService();
+const menuService = new MenuService();
+export default menuService;

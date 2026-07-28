@@ -1,11 +1,14 @@
-import { IUserDocument } from "@modules/users/user.model";
+import { IUserDocument, userService } from "@modules/users";
 import {
+  IFullCheckoutSummary,
   MJAddToCartItem,
   TProcessRefundPayload,
   TUpdateOrderStatusPayload,
 } from "./orders.types";
 import {
   buildCheckoutSummary,
+  calculateEstimatedDelivery,
+  generateOrderNumber,
   sanitizeToId,
   validateCart,
 } from "@shared/utils/helpers";
@@ -14,16 +17,16 @@ import { AppError } from "@shared/middleware/error.middleware";
 import Order from "./orders.model";
 import { Request } from "express";
 import { emitToUser } from "@shared/utils/socket.io";
-import Rider from "@modules/rider/rider.model";
 import { AvailabilityStatus } from "@shared/types/enums";
 import {
   PAYMENT_STATUSES,
   statusHistoryStates,
 } from "@shared/constants/orders.constants";
 import OrderStatusAudit from "./order-status-audit.model";
-import { UserModel } from "@modules/users/user.model";
-import Vendor from "@modules/vendor/vendor.model";
-import Transaction from "@modules/transaction/transaction.model";
+import { riderService } from "@modules/rider";
+import { transactionService } from "@modules/transaction";
+import { vendorService } from "@modules/vendor";
+import { menuService } from "@modules/menus";
 
 const DISPATCH_ROUNDS = [
   { batchSize: 3, waitMs: 25_000, radiusMetres: 3_000 },
@@ -71,14 +74,17 @@ class OrderService {
     if (order.refundStatus === "pending" || order.refundStatus === "success")
       return;
 
-    const existingRefund = await Transaction.findOne({
-      order: order._id,
-      type: "refund",
-      status: { $in: ["pending", "success"] },
-    }).lean();
+    const existingRefund = await transactionService
+      .transaction()
+      .findOne({
+        order: order._id,
+        type: "refund",
+        status: { $in: ["pending", "success"] },
+      })
+      .lean();
 
     if (!existingRefund) {
-      await Transaction.create({
+      await transactionService.transaction().create({
         reference: `refund_${order.orderNumber}_${Date.now()}`,
         order: [order._id],
         user: order.customer,
@@ -111,7 +117,9 @@ class OrderService {
       });
     }
 
-    const admins = await UserModel.find({ role: "admin", status: "active" })
+    const admins = await userService
+      .user()
+      .find({ role: "admin", status: "active" })
       .select("_id")
       .lean();
 
@@ -127,7 +135,11 @@ class OrderService {
   private async resolveVendorOwnerId(vendorId: string | undefined) {
     if (!vendorId) return null;
 
-    const vendor = await Vendor.findById(vendorId).select("owner").lean();
+    const vendor = await vendorService
+      .vendor()
+      .findById(vendorId)
+      .select("owner")
+      .lean();
     return (vendor as any)?.owner?.toString() || null;
   }
 
@@ -193,7 +205,9 @@ class OrderService {
       });
     }
 
-    const admins = await UserModel.find({ role: "admin", status: "active" })
+    const admins = await userService
+      .user()
+      .find({ role: "admin", status: "active" })
       .select("_id")
       .lean();
 
@@ -219,7 +233,9 @@ class OrderService {
 
     const [lng, lat] = coordinates;
 
-    return Rider.findNearby(lng, lat, radiusMetres)
+    return riderService
+      .rider()
+      .findNearby(lng, lat, radiusMetres)
       .select("owner vehicle_type currentLocation status availability_status")
       .populate("owner", "firstName lastName phone")
       .lean();
@@ -331,10 +347,12 @@ class OrderService {
       );
     }
 
-    const vendor = await Vendor.findOne({
-      _id: order.vendor,
-      owner: user._id.toString(),
-    })
+    const vendor = await vendorService
+      .vendor()
+      .findOne({
+        _id: order.vendor,
+        owner: user._id.toString(),
+      })
       .select("_id")
       .lean();
 
@@ -645,11 +663,14 @@ class OrderService {
       throw new AppError(400, "Only paid orders are eligible for refunds");
     }
 
-    const refundTx = await Transaction.findOne({
-      order: order._id,
-      type: "refund",
-      status: { $in: ["pending", "failed", "success"] },
-    }).sort({ createdAt: -1 });
+    const refundTx = await transactionService
+      .transaction()
+      .findOne({
+        order: order._id,
+        type: "refund",
+        status: { $in: ["pending", "failed", "success"] },
+      })
+      .sort({ createdAt: -1 });
 
     if (!refundTx) {
       throw new AppError(404, "Refund transaction not found");
@@ -729,7 +750,10 @@ class OrderService {
     user: IUserDocument,
     orderId: string,
   ) {
-    const rider = await Rider.findOne({ owner: user._id.toString() }).lean();
+    const rider = await riderService
+      .rider()
+      .findOne({ owner: user._id.toString() })
+      .lean();
     if (!rider) throw new AppError(404, "Rider profile not found");
 
     const assignedOrder = await Order.findOneAndUpdate(
@@ -762,7 +786,7 @@ class OrderService {
       throw new AppError(409, "Order already assigned to another rider");
     }
 
-    await Rider.findByIdAndUpdate(rider._id, {
+    await riderService.rider().findByIdAndUpdate(rider._id, {
       availability_status: AvailabilityStatus.BUSY,
     });
 
@@ -808,7 +832,9 @@ class OrderService {
     orderId: string,
     payload: Pick<TUpdateOrderStatusPayload, "status">,
   ) {
-    const rider = await Rider.findOne({ owner: user._id.toString() });
+    const rider = await riderService
+      .rider()
+      .findOne({ owner: user._id.toString() });
     if (!rider) throw new AppError(404, "Rider profile not found");
 
     const order = await Order.findOne({ _id: orderId, driver: rider._id });
@@ -1004,6 +1030,111 @@ class OrderService {
   }
 
   //revalidate checkout order
+  async createPaidOrdersFromCheckout(
+    summary: IFullCheckoutSummary["summary"],
+    checkoutSessionId: string,
+    customerId: string,
+    paymentReference: string,
+    paymentMethod: string,
+    noteForRider?: string,
+    noteForVendor?: string,
+  ) {
+    const user = await userService.user().findById(customerId);
+    if (!user) {
+      throw new AppError(404, "Customer not found");
+    }
+
+    return Promise.all(
+      summary.newCart.map(async (vendor, index) => {
+        const orderNumber = await generateOrderNumber();
+
+        const vendorData = await vendorService
+          .vendor()
+          .findById(vendor.vendorId);
+        const vendorAvgPrep = vendorData?.avgPrepTime ?? 15;
+
+        const menuIds = vendor.items.map((item) => item.id);
+        const menuDocs = await menuService
+          .menu()
+          .find({ _id: { $in: menuIds } })
+          .select("_id prepTime")
+          .lean();
+
+        const prepByMenuId = new Map(
+          menuDocs.map((menu) => [menu._id.toString(), menu.prepTime]),
+        );
+
+        const totalQty =
+          vendor.items.reduce(
+            (acc, item) => acc + Number(item.quantity || 0),
+            0,
+          ) || 1;
+
+        const weightedItemPrep =
+          vendor.items.reduce((acc, item) => {
+            const itemPrep = prepByMenuId.get(item.id) ?? vendorAvgPrep;
+            return acc + itemPrep * Number(item.quantity || 1);
+          }, 0) / totalQty;
+
+        const maxItemPrep = vendor.items.reduce((max, item) => {
+          const itemPrep = prepByMenuId.get(item.id) ?? vendorAvgPrep;
+          return Math.max(max, itemPrep);
+        }, 0);
+
+        const complexityPenalty = Math.max(vendor.items.length - 1, 0) * 1.5;
+
+        const orderPrepMins = Math.max(
+          vendorAvgPrep,
+          Math.round(
+            0.6 * weightedItemPrep + 0.4 * maxItemPrep + complexityPenalty,
+          ),
+        );
+
+        const newEta = calculateEstimatedDelivery(
+          Number(vendor?.calculatedDistanceKm),
+          orderPrepMins,
+        );
+
+        return Order.create({
+          orderNumber,
+          checkoutSessionId,
+          customer: customerId,
+          vendor: vendor.vendorId,
+          items: vendor.items,
+          status: "pending",
+          statusHistory: [
+            {
+              status: "pending",
+              timestamp: new Date(),
+              updatedBy: customerId,
+              updatedByUserRole: "customer",
+            },
+          ],
+          deliveryAddress: user.toObject().currentAddress,
+          calculatedDistanceKm: Number(vendor.calculatedDistanceKm),
+          deliveryLocation: user.toObject().location,
+          subtotal: vendor.calculatedSubtotal,
+          deliveryFee: vendor.vendorDeliveryFee,
+          prepTimeEstimate: orderPrepMins,
+          serviceFee: vendor.serviceCharge,
+          total: vendor.total,
+          paymentStatus: "paid",
+          paymentMethod,
+          paymentReference: `${paymentReference}-${index}`,
+          currency: "NGN",
+          orderType: "delivery",
+          promoCode: "",
+          customerNotes: noteForVendor || "",
+          noteForDriver: noteForRider || "",
+          discount: 0,
+          estimatedDeliveryTime: newEta.eta,
+          totalMinutesToDelivery: newEta.totalMinutes,
+          actualDeliveryTime: null,
+        });
+      }),
+    );
+  }
+
   async revalidateCheckoutSession(user: IUserDocument, orderId: string) {
     const order = await Order.findById(orderId);
     if (!order) {

@@ -1,9 +1,4 @@
-import MenuItem from "@modules/menus/menu.model";
-import { MJAddToCartItem } from "@modules/orders/orders.types";
-import { IUserDocument } from "@modules/users/user.model";
-import Vendor from "@modules/vendor/vendor.model";
 import { env } from "@shared/config/env.js";
-import { AppError } from "@shared/middleware/error.middleware";
 import { ApplicationCharges } from "@shared/types/enums";
 import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
@@ -12,6 +7,10 @@ import utc from "dayjs/plugin/utc";
 import { Request } from "express";
 import crypto from "crypto";
 import { ILocation } from "@shared/models/shared.types";
+import { vendorService } from "@modules/vendor";
+import { IUserDocument } from "@modules/users";
+import { MJAddToCartItem } from "@modules/orders";
+import { menuService } from "@modules/menus";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -77,8 +76,10 @@ export async function validateCart(cartItems: MJAddToCartItem[]) {
 
   await Promise.all(
     cartItems.map(async (item) => {
-      const menuItem = await MenuItem.findById(item.id);
-      const vendor = (await Vendor.findById(item.vendorId))?.toObject({
+      const menuItem = await menuService.menu().findById(item.id);
+      const vendor = (
+        await vendorService.vendor().findById(item.vendorId)
+      )?.toObject({
         virtuals: true,
       });
 
@@ -174,7 +175,7 @@ export async function buildCheckoutSummary(
       if (existing) {
         existing.items.push(product);
       } else {
-        const vendor = await Vendor.findById(product.vendorId);
+        const vendor = await vendorService.vendor().findById(product.vendorId);
         if (vendor) {
           const { _id, name, logo, slug, location, deliveryFee } =
             vendor.toObject();

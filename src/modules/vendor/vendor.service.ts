@@ -1,12 +1,15 @@
 import { FullRestaurantData } from "@shared/schemas/vendor.schema";
-import { IVendorReqFiles } from "./vendor.types";
 import { uploadToCloudinary } from "@shared/utils/cloudinary.service";
 import Vendor from "./vendor.model";
-import { IUserDocument } from "@modules/users/user.model";
+import { IUserDocument } from "@modules/users";
 import { sanitizeToId } from "@shared/utils/helpers";
 import { AppError } from "@shared/middleware/error.middleware";
+import { IVendorReqFiles } from "./vendor.types";
 
-export class VendorService {
+class VendorService {
+  vendor() {
+    return Vendor;
+  }
   async createVendor(
     user: IUserDocument,
     data: FullRestaurantData,
@@ -102,4 +105,5 @@ export class VendorService {
   }
 }
 
-export const vendorService = new VendorService();
+const vendorService = new VendorService();
+export default vendorService;

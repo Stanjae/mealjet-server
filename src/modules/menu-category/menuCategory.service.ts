@@ -1,14 +1,16 @@
-import Vendor from "@modules/vendor/vendor.model";
 import { TCreateMeuCategoryPayload } from "./menuCategory.types";
 import { AppError } from "@shared/middleware/error.middleware";
 import MenuCategory from "./menuCategory.model";
 import { sanitizeToId } from "@shared/utils/helpers";
-
+import { vendorService } from "@modules/vendor";
 const MENU_CATEGORIES_PER_PAGE = 10;
 
 class MenuCategoryService {
+  menuCategory() {
+    return MenuCategory;
+  }
   async createMenuCategory(payload: TCreateMeuCategoryPayload) {
-    const vendor = await Vendor.findById(payload.vendorId);
+    const vendor = await vendorService.vendor().findById(payload.vendorId);
     if (!vendor) {
       throw new AppError(404, "Invalid vendor ID");
     }
@@ -52,7 +54,7 @@ class MenuCategoryService {
 
   async updateMenuCategory(payload: TCreateMeuCategoryPayload) {
     const { id, vendorId, ...rest } = payload;
-    const vendor = await Vendor.findById(vendorId);
+    const vendor = await vendorService.vendor().findById(vendorId);
     if (!vendor) {
       throw new AppError(404, "Invalid vendor ID");
     }
@@ -91,4 +93,5 @@ class MenuCategoryService {
   }
 }
 
-export const menuCategoryService = new MenuCategoryService();
+const menuCategoryService = new MenuCategoryService();
+export default menuCategoryService;

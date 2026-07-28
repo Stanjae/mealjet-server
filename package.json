@@ -14,7 +14,7 @@
     "lint": "eslint src",
     "format": "prettier --write src",
     "lint-staged": "lint-staged",
-    "prepare": "husky"
+    "prepare": "husky || true"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx,json,md,yml,yaml}": "prettier --check"
@@ -38,6 +38,8 @@
     "@types/passport-google-oauth20": "^2.0.17",
     "@types/passport-jwt": "^4.0.1",
     "@types/supertest": "^6.0.3",
+    "@typescript-eslint/eslint-plugin": "^8.65.0",
+    "@typescript-eslint/parser": "^8.65.0",
     "@vitest/coverage-v8": "^4.0.18",
     "eslint": "^10.0.0",
     "eslint-config-prettier": "^10.1.8",

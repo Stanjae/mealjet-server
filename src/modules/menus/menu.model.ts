@@ -1,7 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 import { IMenuItem } from "./menu.types";
 import { menuAllergens, menuItemsTags } from "@shared/constants/menu.constants";
-import MenuCategory from "@modules/menu-category/menuCategory.model";
+import { menuCategoryService } from "@modules/menu-category";
 
 const AddonOptionSchema = new Schema(
   {
@@ -155,7 +155,7 @@ MenuItemSchema.pre("save", function () {
 
 MenuItemSchema.post("save", async function () {
   if ((this as any)._wasNew) {
-    await MenuCategory.findByIdAndUpdate(this.category, {
+    await menuCategoryService.menuCategory().findByIdAndUpdate(this.category, {
       $inc: { itemCount: 1 },
     });
   }
@@ -164,7 +164,7 @@ MenuItemSchema.post("save", async function () {
 // ── On delete ────────────────────────────────────────────────────────────────
 MenuItemSchema.post("findOneAndDelete", async function (doc) {
   if (doc) {
-    await MenuCategory.findByIdAndUpdate(doc.category, {
+    await menuCategoryService.menuCategory().findByIdAndUpdate(doc.category, {
       $inc: { itemCount: -1 },
     });
   }
