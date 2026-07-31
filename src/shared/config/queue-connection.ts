@@ -1,5 +1,5 @@
 import { QueueOptions, WorkerOptions } from "bullmq";
-import { env } from "@shared/config/env.js";
+import { env } from "./env";
 
 const redisUrl = new URL(env.REDIS_URL);
 

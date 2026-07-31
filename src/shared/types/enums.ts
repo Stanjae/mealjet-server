@@ -27,3 +27,11 @@ export enum UserRole {
   RIDER = "rider",
   ADMIN = "admin",
 }
+
+export enum DispatchStatus {
+  NOT_STARTED = "not_started",
+  SEARCHING = "searching",
+  EXPANDING_RADIUS = "expanding_radius",
+  RIDER_ASSIGNED = "rider_assigned",
+  FAILED = "failed",
+}

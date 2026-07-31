@@ -10,6 +10,7 @@ import { riderService } from "@modules/rider";
 import { Request } from "express";
 import { UserRole } from "@shared/types/enums";
 import { IAddress, IUser, IUserDocument, userService } from "@modules/users";
+import { QUEUE_ACTIONS } from "@shared/constants/queue-actions.constants";
 export class AuthService {
   // Register a new user and send email verification
   async register(dto: RegisterDto) {
@@ -28,7 +29,7 @@ export class AuthService {
       const verifyToken = crypto.randomBytes(32).toString("hex");
       await redisSet(`email_verify:${verifyToken}`, user._id.toString(), 900); // 15 min TTL
 
-      await enqueueVerificationEmailJob({
+      await enqueueVerificationEmailJob(QUEUE_ACTIONS.SEND_VERIFICATION_EMAIL, {
         to: user.email,
         name: user.username,
         token: verifyToken,
@@ -56,7 +57,7 @@ export class AuthService {
         900, // 15 min TTL
       );
 
-      await enqueueVerificationEmailJob({
+      await enqueueVerificationEmailJob(QUEUE_ACTIONS.SEND_VERIFICATION_EMAIL, {
         to: existing.email,
         name: existing.username,
         token: verifyToken,

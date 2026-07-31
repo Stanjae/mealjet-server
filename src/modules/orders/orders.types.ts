@@ -133,3 +133,8 @@ export type TProcessRefundPayload = {
   refundReference?: string;
   failureReason?: string;
 };
+
+export type TMarkOrderAsReadyPayload = {
+  actualPrepTime?: number;
+  vendorId: string;
+};
