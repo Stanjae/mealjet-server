@@ -28,8 +28,6 @@ export enum UserRole {
   ADMIN = "admin",
 }
 
-// src/modules/dispatch/enums/dispatch.enums.js
-
 export enum DispatchStatus {
   CREATED = "CREATED",
 

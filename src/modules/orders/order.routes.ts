@@ -60,20 +60,20 @@ router.patch(
   orderController.updateOrderStatus,
 );
 
-// mark order as ready for delivery by orderId
-router.patch(
-  "/mark-order-as-ready/:orderId",
-  authenticate,
-  authorize(UserRole.VENDOR),
-  orderController.markOrderAsReady,
-);
-
 //revalidates checkout session for a given orderId and returns updated summary
 router.get(
   "/revalidate-checkout-session/:orderId",
   authenticate,
   authorize(UserRole.CUSTOMER),
   orderController.revalidateCheckoutSession,
+);
+
+// mark order as ready
+router.patch(
+  "/mark-order-as-ready/:orderId",
+  authenticate,
+  authorize(UserRole.VENDOR),
+  orderController.markOrderAsReady,
 );
 
 export default router;

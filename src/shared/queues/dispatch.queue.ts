@@ -1,6 +1,6 @@
 import { JobsOptions } from "bullmq";
 import { TDispatchJob } from "@shared/types/queue.types.js";
-import { defaultQueue } from "./index.js";
+import { defaultQueue } from ".";
 
 export const DISPATCH_QUEUE_NAME = "dispatch";
 

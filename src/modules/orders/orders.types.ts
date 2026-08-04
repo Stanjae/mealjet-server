@@ -135,5 +135,6 @@ export type TProcessRefundPayload = {
 };
 
 export type TMarkOrderAsReadyPayload = {
-  actualPrepTime: number;
+  actualPrepTime?: number;
+  vendorId: string;
 };

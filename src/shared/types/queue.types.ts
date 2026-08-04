@@ -2,7 +2,7 @@ export type TDispatchJob = {
   dispatchId: string;
 };
 
-export type VerificationEmailJob = {
+export type TVerificationEmailJob = {
   to: string;
   name: string;
   token: string;

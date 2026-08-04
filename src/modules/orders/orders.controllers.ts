@@ -1,7 +1,7 @@
 import { asyncHandler } from "@shared/middleware/error.middleware";
 import { ApiResponse } from "@shared/utils/api-response";
 import { Request, Response } from "express";
-import { MJAddToCartItem } from "./orders.types";
+import { MJAddToCartItem, TMarkOrderAsReadyPayload } from "./orders.types";
 import orderService from "./orders.services";
 import { IUserDocument } from "@modules/users";
 
@@ -79,18 +79,6 @@ export const updateOrderStatus = asyncHandler(
   },
 );
 
-export const markOrderAsReady = asyncHandler(
-  async (req: Request, res: Response) => {
-    const { orderId } = req.params;
-    const result = await orderService.markOrderAsReady(
-      orderId as string,
-      req.body,
-    );
-
-    ApiResponse.success(res, {}, result.message);
-  },
-);
-
 export const getCustomerOrders = asyncHandler(
   async (req: Request, res: Response) => {
     const { message, orders } = await orderService.getCustomerOrders(
@@ -121,5 +109,17 @@ export const revalidateCheckoutSession = asyncHandler(
       );
 
     ApiResponse.success(res, restResult, message);
+  },
+);
+
+export const markOrderAsReady = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { orderId } = req.params;
+    const { message } = await orderService.markOrderAsReady(
+      orderId as string,
+      req.body as TMarkOrderAsReadyPayload,
+    );
+
+    ApiResponse.success(res, {}, message);
   },
 );
