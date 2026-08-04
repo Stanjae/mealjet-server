@@ -27,3 +27,41 @@ export enum UserRole {
   RIDER = "rider",
   ADMIN = "admin",
 }
+
+// src/modules/dispatch/enums/dispatch.enums.js
+
+export enum DispatchStatus {
+  CREATED = "CREATED",
+
+  SEARCHING = "SEARCHING",
+
+  ASSIGNED = "ASSIGNED",
+
+  COMPLETED = "COMPLETED",
+
+  FAILED = "FAILED",
+
+  CANCELLED = "CANCELLED",
+}
+
+export enum DispatchAttemptStatus {
+  SEARCHING = "SEARCHING",
+
+  COMPLETED = "COMPLETED",
+
+  EXHAUSTED = "EXHAUSTED",
+
+  CANCELLED = "CANCELLED",
+}
+
+export enum RiderOfferStatus {
+  PENDING = "PENDING",
+
+  ACCEPTED = "ACCEPTED",
+
+  DECLINED = "DECLINED",
+
+  EXPIRED = "EXPIRED",
+
+  CANCELLED = "CANCELLED",
+}

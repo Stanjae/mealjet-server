@@ -11,7 +11,7 @@ import { logger } from "@shared/utils/logger.js";
 import {
   startEmailWorker,
   stopEmailWorker,
-} from "@shared/queues/email.worker.js";
+} from "@shared/workers/email.worker.js";
 
 async function main() {
   // 1. Connect to MongoDB

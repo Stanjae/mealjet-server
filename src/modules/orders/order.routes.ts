@@ -60,36 +60,12 @@ router.patch(
   orderController.updateOrderStatus,
 );
 
-// vendor manually retries rider dispatch for ready+unassigned order
+// mark order as ready for delivery by orderId
 router.patch(
-  "/vendor/retry-dispatch/:orderId",
+  "/mark-order-as-ready/:orderId",
   authenticate,
   authorize(UserRole.VENDOR),
-  orderController.vendorRetryDispatch,
-);
-
-// admin processes queued refund for cancelled order
-router.patch(
-  "/admin/process-refund/:orderId",
-  authenticate,
-  authorize(UserRole.ADMIN),
-  orderController.adminProcessRefund,
-);
-
-// rider accepts dispatch offer
-router.patch(
-  "/rider/accept-dispatch/:orderId",
-  authenticate,
-  authorize(UserRole.RIDER),
-  orderController.riderAcceptDispatch,
-);
-
-// rider updates in-delivery statuses
-router.patch(
-  "/rider/update-delivery-status/:orderId",
-  authenticate,
-  authorize(UserRole.RIDER),
-  orderController.riderUpdateDeliveryStatus,
+  orderController.markOrderAsReady,
 );
 
 //revalidates checkout session for a given orderId and returns updated summary

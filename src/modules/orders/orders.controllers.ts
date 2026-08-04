@@ -79,59 +79,15 @@ export const updateOrderStatus = asyncHandler(
   },
 );
 
-export const vendorRetryDispatch = asyncHandler(
+export const markOrderAsReady = asyncHandler(
   async (req: Request, res: Response) => {
     const { orderId } = req.params;
-
-    const result = await orderService.vendorRetryDispatch(
-      req,
-      req.user as IUserDocument,
-      orderId as string,
-    );
-
-    ApiResponse.success(res, result, "Dispatch retry started successfully");
-  },
-);
-
-export const adminProcessRefund = asyncHandler(
-  async (req: Request, res: Response) => {
-    const { orderId } = req.params;
-
-    const result = await orderService.adminProcessRefund(
-      req,
-      req.user as IUserDocument,
+    const result = await orderService.markOrderAsReady(
       orderId as string,
       req.body,
     );
 
-    ApiResponse.success(res, result, result.message);
-  },
-);
-
-export const riderAcceptDispatch = asyncHandler(
-  async (req: Request, res: Response) => {
-    const { orderId } = req.params;
-    const result = await orderService.riderAcceptDispatch(
-      req,
-      req.user as IUserDocument,
-      orderId as string,
-    );
-
-    ApiResponse.success(res, result, "Order accepted successfully");
-  },
-);
-
-export const riderUpdateDeliveryStatus = asyncHandler(
-  async (req: Request, res: Response) => {
-    const { orderId } = req.params;
-    const result = await orderService.riderUpdateDeliveryStatus(
-      req,
-      req.user as IUserDocument,
-      orderId as string,
-      req.body,
-    );
-
-    ApiResponse.success(res, result, "Delivery status updated successfully");
+    ApiResponse.success(res, {}, result.message);
   },
 );
 
