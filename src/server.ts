@@ -11,7 +11,15 @@ import { logger } from "@shared/utils/logger.js";
 import {
   startEmailWorker,
   stopEmailWorker,
-} from "@shared/queues/email.worker.js";
+} from "@shared/workers/email.worker.js";
+import {
+  startDispatchWorker,
+  stopDispatchWorker,
+} from "@shared/workers/dispatch.worker.js";
+import {
+  startNotificationWorker,
+  stopNotificationWorker,
+} from "@shared/workers/notification.worker.js";
 
 async function main() {
   // 1. Connect to MongoDB
@@ -27,6 +35,8 @@ async function main() {
 
   // 2b. Start BullMQ workers
   startEmailWorker();
+  startDispatchWorker();
+  startNotificationWorker();
 
   // 3. Create Express app
   const app = createApp();
@@ -91,6 +101,8 @@ async function main() {
     logger.warn(`Received ${signal} — shutting down gracefully...`);
     httpServer.close(async () => {
       await stopEmailWorker();
+      await stopDispatchWorker();
+      await stopNotificationWorker();
       await disconnectDatabase();
       await redis.quit();
       logger.info("Graceful shutdown complete");
