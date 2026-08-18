@@ -1,7 +1,7 @@
 import { asyncHandler } from "@shared/middleware/error.middleware";
 import { ApiResponse } from "@shared/utils/api-response";
 import { Request, Response } from "express";
-import { MJAddToCartItem } from "./orders.types";
+import { MJAddToCartItem, TMarkOrderAsReadyPayload } from "./orders.types";
 import orderService from "./orders.services";
 import { IUserDocument } from "@modules/users";
 
@@ -79,62 +79,6 @@ export const updateOrderStatus = asyncHandler(
   },
 );
 
-export const vendorRetryDispatch = asyncHandler(
-  async (req: Request, res: Response) => {
-    const { orderId } = req.params;
-
-    const result = await orderService.vendorRetryDispatch(
-      req,
-      req.user as IUserDocument,
-      orderId as string,
-    );
-
-    ApiResponse.success(res, result, "Dispatch retry started successfully");
-  },
-);
-
-export const adminProcessRefund = asyncHandler(
-  async (req: Request, res: Response) => {
-    const { orderId } = req.params;
-
-    const result = await orderService.adminProcessRefund(
-      req,
-      req.user as IUserDocument,
-      orderId as string,
-      req.body,
-    );
-
-    ApiResponse.success(res, result, result.message);
-  },
-);
-
-export const riderAcceptDispatch = asyncHandler(
-  async (req: Request, res: Response) => {
-    const { orderId } = req.params;
-    const result = await orderService.riderAcceptDispatch(
-      req,
-      req.user as IUserDocument,
-      orderId as string,
-    );
-
-    ApiResponse.success(res, result, "Order accepted successfully");
-  },
-);
-
-export const riderUpdateDeliveryStatus = asyncHandler(
-  async (req: Request, res: Response) => {
-    const { orderId } = req.params;
-    const result = await orderService.riderUpdateDeliveryStatus(
-      req,
-      req.user as IUserDocument,
-      orderId as string,
-      req.body,
-    );
-
-    ApiResponse.success(res, result, "Delivery status updated successfully");
-  },
-);
-
 export const getCustomerOrders = asyncHandler(
   async (req: Request, res: Response) => {
     const { message, orders } = await orderService.getCustomerOrders(
@@ -165,5 +109,17 @@ export const revalidateCheckoutSession = asyncHandler(
       );
 
     ApiResponse.success(res, restResult, message);
+  },
+);
+
+export const markOrderAsReady = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { orderId } = req.params;
+    const { message } = await orderService.markOrderAsReady(
+      orderId as string,
+      req.body as TMarkOrderAsReadyPayload,
+    );
+
+    ApiResponse.success(res, {}, message);
   },
 );
