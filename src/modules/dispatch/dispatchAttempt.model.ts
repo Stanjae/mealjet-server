@@ -39,6 +39,10 @@ const dispatchAttemptSchema = new mongoose.Schema<IDispatchAttemptDocument>(
       type: Number,
       default: 0,
     },
+    offersAccepted: {
+      type: Number,
+      default: 0,
+    },
     startedAt: {
       type: Date,
       default: Date.now,
@@ -59,20 +63,15 @@ dispatchAttemptSchema.index(
   { unique: true },
 );
 
-dispatchAttemptSchema.statics.findAttemptPerDispatchCount = async function (
-  dispatchId: mongoose.Types.ObjectId,
-) {
-  const count = await this.countDocuments({ dispatch: dispatchId });
-  return count || 0;
-};
-
 dispatchAttemptSchema.statics.incrementOffersSent = async function (
   dispatchAttemptId: mongoose.Types.ObjectId,
   incrementBy: number = 1,
+  session?: mongoose.ClientSession,
 ) {
-  await this.updateOne(
+  return await this.updateOne(
     { _id: dispatchAttemptId },
     { $inc: { offersSent: incrementBy } },
+    { session },
   );
 };
 
@@ -84,6 +83,28 @@ dispatchAttemptSchema.statics.findActiveAttemptForDispatch = async function (
     state: DispatchAttemptStatus.SEARCHING,
   }).sort({ attemptNumber: -1 });
   return activeAttempt;
+};
+
+dispatchAttemptSchema.statics.markAsCompleted = async function (
+  attemptId: mongoose.Types.ObjectId,
+  session?: mongoose.ClientSession,
+) {
+  return await this.findOneAndUpdate(
+    {
+      _id: attemptId,
+      state: DispatchAttemptStatus.SEARCHING,
+    },
+    {
+      $set: {
+        state: DispatchAttemptStatus.COMPLETED,
+        endedAt: new Date(),
+      },
+    },
+    {
+      new: true,
+      session,
+    },
+  );
 };
 
 const DispatchAttemptModel = mongoose.model<

@@ -31,9 +31,9 @@ import { riderService } from "@modules/rider";
 import { transactionService } from "@modules/transaction";
 import { vendorService } from "@modules/vendor";
 import { menuService } from "@modules/menus";
-import { DispatchEvents } from "@modules/dispatch";
 import mongoose from "mongoose";
 import { eventHandler } from "@shared/events/event";
+import { eventActions } from "@shared/events/event.actions";
 
 const VENDOR_ALLOWED_TRANSITIONS: Partial<
   Record<statusHistoryStates, statusHistoryStates[]>
@@ -567,7 +567,7 @@ class OrderService {
       }
       await order.save({ session });
       await session.commitTransaction();
-      this.eventBus.emit(DispatchEvents.STARTED, {
+      this.eventBus.emit(eventActions.STARTED, {
         orderId: order._id.toString(),
       });
     } catch (error) {

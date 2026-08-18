@@ -1,5 +1,6 @@
 export type TDispatchJob = {
   dispatchId: string;
+  dispatchAttemptId?: string;
 };
 
 export type TVerificationEmailJob = {
@@ -12,4 +13,5 @@ export type TVerificationEmailJob = {
 export type TNotificationJob = {
   dispatchId?: string;
   dispatchAttemptId?: string;
+  riderId?: string;
 };

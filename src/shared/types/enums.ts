@@ -28,6 +28,28 @@ export enum UserRole {
   ADMIN = "admin",
 }
 
+/* // enums.ts
+
+export enum DispatchStatus {
+    CREATED = "CREATED",
+    SEARCHING = "SEARCHING",
+    ASSIGNED = "ASSIGNED",
+    FAILED = "FAILED",
+}
+
+export enum DispatchAttemptStatus {
+    SEARCHING = "SEARCHING",
+    COMPLETED = "COMPLETED",
+}
+
+export enum RiderOfferStatus {
+    PENDING = "PENDING",
+    ACCEPTED = "ACCEPTED",
+    DECLINED = "DECLINED",
+    EXPIRED = "EXPIRED",
+    CANCELLED = "CANCELLED",
+} */
+
 export enum DispatchStatus {
   CREATED = "CREATED",
 

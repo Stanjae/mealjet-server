@@ -1,8 +1,8 @@
 import { eventHandler } from "@shared/events/event";
-import { DispatchEvents } from "./dispatch.constant";
 import dispatchService from "./dispatch.service";
+import { eventActions } from "@shared/events/event.actions";
 
-eventHandler.on(DispatchEvents.STARTED, async (payload) => {
+eventHandler.on(eventActions.STARTED, async (payload) => {
   const { orderId } = payload;
   await dispatchService.createDispatch(orderId);
 });

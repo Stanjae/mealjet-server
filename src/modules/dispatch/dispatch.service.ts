@@ -1,4 +1,8 @@
-import { DispatchStatus } from "@shared/types/enums";
+import {
+  DispatchAttemptStatus,
+  DispatchStatus,
+  RiderOfferStatus,
+} from "@shared/types/enums";
 import DispatchModel from "./dispatch.model";
 import DispatchAttemptModel from "./dispatchAttempt.model";
 import DispatchRiderOfferModel from "./dispatchRiderOffer.model";
@@ -9,11 +13,19 @@ import { QUEUE_ACTIONS } from "@shared/constants/queue-actions.constants";
 import { dispatchStrategy } from "./dispatchStrategy.constant";
 import { IOrder } from "@modules/orders";
 import { IDispatchAttemptDocument, IDispatchDocument } from "./dispatch.types";
-import { enqueueNotificationJob } from "@shared/queues/notification.queue";
+import mongoose from "mongoose";
+import { eventHandler } from "@shared/events/event";
+import { eventActions } from "@shared/events/event.actions";
+import { AppError } from "@shared/middleware/error.middleware";
 
 class DispatchService {
   private dispatchRiderOfferModel = DispatchRiderOfferModel;
   private dispatchAttemptModel = DispatchAttemptModel;
+  private eventBus = eventHandler;
+
+  dispatchModel() {
+    return DispatchModel;
+  }
 
   private async getAvailabeRiderForDispatch(
     location: IVendor["location"],
@@ -35,12 +47,11 @@ class DispatchService {
       })
       .select("rider");
 
-    const alreadyNotified = previousCandidates.map((c) =>
-      c.rider._id?.toString(),
+    const alreadyNotified = new Set(
+      previousCandidates.map((c) => c.rider.toString()),
     );
-
     const availableRiders = riders.filter(
-      (r) => !alreadyNotified.includes(r._id.toString()),
+      (r) => !alreadyNotified.has(r._id.toString()),
     );
     //also check if rider can accept more orders based on their current active delivery and availability status
     //not implemented yet, but will be added in the future.
@@ -48,15 +59,14 @@ class DispatchService {
   }
 
   private async createDispatchAttempt(dispatch: IDispatchDocument) {
-    const attemptCount =
-      await this.dispatchAttemptModel.findAttemptPerDispatchCount(dispatch._id);
-
-    const attemptNumber = attemptCount + 1;
+    const attemptNumber = dispatch.currentAttempt + 1;
     const radius =
       dispatchStrategy.STANDARD.initialRadiusKm +
       (attemptNumber - 1) * dispatchStrategy.STANDARD.radiusIncrementKm;
 
     const radiusKm = Math.min(radius, dispatchStrategy.STANDARD.maxRadiusKm);
+
+    await this.dispatchModel().incrementCurrentAttempt(dispatch._id);
 
     return this.dispatchAttemptModel.create({
       dispatch: dispatch._id,
@@ -65,6 +75,29 @@ class DispatchService {
     });
   }
 
+  private async completeAttempt(dispatch: any, attempt: any) {
+    const completed = await this.dispatchAttemptModel.markAsCompleted(
+      attempt._id.toString(),
+    );
+
+    if (!completed) {
+      return;
+    }
+
+    // Radius still available?
+    if (attempt.radiusKm < dispatchStrategy.STANDARD.maxRadiusKm) {
+      await enqueueDispatchJob(QUEUE_ACTIONS.START_DISPATCH, {
+        dispatchId: dispatch._id.toString(),
+      });
+
+      return;
+    }
+
+    //Maximum radius exhausted.
+    await this.retryDispatch(dispatch._id.toString());
+  }
+
+  //Creates a batch of offers.
   private async sendDispatchOffers(
     dispatch: IDispatchDocument,
     dispatchAttempt: IDispatchAttemptDocument,
@@ -77,20 +110,28 @@ class DispatchService {
         attempt: dispatchAttempt._id,
         rider: rider._id,
         order: dispatch.order._id,
-        status: "notified",
+        status: RiderOfferStatus.PENDING,
         notifiedAt: new Date(),
         expiresAt: new Date(
           Date.now() + dispatchStrategy.STANDARD.offerTimeoutSeconds * 1000,
         ),
       }));
 
-    await this.dispatchRiderOfferModel.insertMany(offers);
-    await this.dispatchAttemptModel.incrementOffersSent(
-      dispatchAttempt._id,
-      offers.length,
-    );
+    const session = await mongoose.startSession();
+    try {
+      await session.withTransaction(async () => {
+        await this.dispatchRiderOfferModel.insertMany(offers, { session });
+        await this.dispatchAttemptModel.incrementOffersSent(
+          dispatchAttempt._id,
+          offers.length,
+          session,
+        );
+      });
+    } finally {
+      await session.endSession();
+    }
 
-    await enqueueNotificationJob(QUEUE_ACTIONS.SEND_RIDER_OFFER_NOTIFICATION, {
+    this.eventBus.emit(eventActions.OFFERS_CREATED, {
       dispatchId: dispatch._id.toString(),
       dispatchAttemptId: dispatchAttempt._id.toString(),
     });
@@ -99,13 +140,10 @@ class DispatchService {
       QUEUE_ACTIONS.OFFER_TIMEOUT,
       {
         dispatchId: dispatch._id.toString(),
+        dispatchAttemptId: dispatchAttempt._id.toString(),
       },
       { delay: dispatchStrategy.STANDARD.offerTimeoutSeconds * 1000 },
     );
-  }
-
-  dispatchModel() {
-    return DispatchModel;
   }
 
   async createDispatch(orderId: string): Promise<void> {
@@ -126,9 +164,7 @@ class DispatchService {
   async startDispatch(dispatchId: string): Promise<void> {
     const dispatch = await this.dispatchModel()
       .findById(dispatchId)
-      .populate("order")
-      .populate("vendor");
-
+      .populate({ path: "order", populate: { path: "vendor" } });
     if (!dispatch) return;
 
     if (dispatch.state === DispatchStatus.SEARCHING) return;
@@ -136,6 +172,8 @@ class DispatchService {
     const order = dispatch.order as unknown as IOrder;
 
     const { location } = order.vendor as unknown as IVendor;
+
+    await this.dispatchModel().transitionToSearching(dispatch._id);
 
     //create a dispatch attempt for this dispatch
     const dispatchAttempt = await this.createDispatchAttempt(dispatch);
@@ -148,15 +186,79 @@ class DispatchService {
     );
 
     if (riders.length === 0) {
-      //return this.retryDispatch(dispatchId);
-      console.log("No riders available for dispatch.");
+      await this.completeAttempt(dispatch, dispatchAttempt);
       return;
     }
 
     await this.sendDispatchOffers(dispatch, dispatchAttempt, riders);
   }
 
+  async offerTimeout(
+    dispatchId: string,
+    dispatchAttemptId?: string,
+  ): Promise<void> {
+    const attempt = await this.dispatchAttemptModel.findById(dispatchAttemptId);
+
+    if (!attempt || attempt.state === DispatchAttemptStatus.COMPLETED) {
+      return;
+    }
+
+    const dispatch = await this.dispatchModel()
+      .findById(dispatchId)
+      .populate({ path: "order", populate: { path: "vendor" } });
+
+    if (!dispatch || dispatch.state === DispatchStatus.ASSIGNED) return;
+
+    await this.dispatchRiderOfferModel.expireAttemptOffers(
+      dispatchAttemptId as string,
+    );
+
+    //If somebody accepted before the timeout, stop here.
+    const acceptedOffer = await this.dispatchRiderOfferModel.findAcceptedOffer(
+      dispatchAttemptId as string,
+    );
+
+    if (acceptedOffer) {
+      return;
+    }
+
+    await this.completeAttempt(dispatch, attempt);
+  }
+
+  //Automatic retry after all radius levels have been exhausted.
   async retryDispatch(dispatchId: string): Promise<void> {
+    const dispatch = await this.dispatchModel().findById(dispatchId);
+
+    if (!dispatch || dispatch.state === DispatchStatus.ASSIGNED) {
+      return;
+    }
+
+    if (
+      dispatch.autoRetryCount >=
+      dispatchStrategy.STANDARD.maximumAutomaticRetries
+    ) {
+      await this.failDispatch(
+        dispatch._id.toString(),
+        "MAXIMUM_RETRIES_EXHAUSTED",
+      );
+      return;
+    }
+
+    await this.dispatchModel().incrementAutomaticRetry(dispatchId);
+
+    await enqueueDispatchJob(
+      QUEUE_ACTIONS.START_DISPATCH,
+      {
+        dispatchId,
+      },
+      {
+        delay: dispatchStrategy.STANDARD.automaticRetryDelaySeconds * 1000,
+      },
+    );
+  }
+
+  //Vendor manually retries dispatch.
+  async manualRetry(dispatchId: string) {
     const dispatch = await this.dispatchModel().findById(dispatchId);
 
     if (!dispatch) {
@@ -167,7 +269,119 @@ class DispatchService {
       return;
     }
 
-    console.log("No rider accepted.");
+    if (dispatch.state !== DispatchStatus.FAILED) {
+      return;
+    }
+
+    await this.dispatchModel().findByIdAndUpdate(dispatchId, {
+      $set: {
+        state: DispatchStatus.SEARCHING,
+
+        lastFailureReason: null,
+      },
+    });
+
+    await this.dispatchModel().incrementManualRetry(dispatchId);
+
+    await enqueueDispatchJob(QUEUE_ACTIONS.START_DISPATCH, {
+      dispatchId,
+    });
+  }
+
+  //Permanently fail dispatch.
+  private async failDispatch(dispatchId: string, reason: string) {
+    const failed = await this.dispatchModel().markAsFailed(dispatchId, reason);
+
+    if (!failed) {
+      return;
+    }
+
+    this.eventBus.emit(eventActions.DISPATCH_FAILED, {
+      dispatchId,
+
+      orderId: failed.order.toString(),
+
+      reason,
+    });
+  }
+
+  //Rider accepts an offer. This is the most important transaction in the dispatch system.
+  async acceptOffer(offerId: string, riderId: string) {
+    const session = await mongoose.startSession();
+
+    try {
+      let acceptedOffer: any;
+      let dispatch: any;
+
+      await session.withTransaction(async () => {
+        const offer = await this.dispatchRiderOfferModel.acceptOffer(
+          offerId,
+          riderId,
+          session,
+        );
+
+        //If this returns null, somebody already processed the offer.
+
+        if (!offer) {
+          throw new AppError(404, "Offer is no longer available.");
+        }
+
+        dispatch = await this.dispatchModel()
+          .findOne({
+            _id: offer.dispatch,
+
+            state: DispatchStatus.SEARCHING,
+
+            assignedRider: null,
+          })
+          .session(session);
+
+        if (!dispatch) {
+          throw new Error("Dispatch is already assigned.");
+        }
+
+        //Atomic dispatch assignment.
+
+        const assigned = await this.dispatchModel().assignRider(
+          dispatch._id.toString(),
+          riderId,
+          session,
+        );
+
+        if (!assigned) {
+          throw new Error("Dispatch was already assigned.");
+        }
+
+        //Cancel all remaining offers.
+
+        await this.dispatchRiderOfferModel.cancelOtherOffers(
+          dispatch._id.toString(),
+          offer._id.toString(),
+          session,
+        );
+
+        await this.dispatchAttemptModel.markAsCompleted(
+          offer.attempt.toString(),
+          session,
+        );
+
+        acceptedOffer = offer;
+      });
+
+      //Only emit after commit.
+
+      this.eventBus.emit(eventActions.RIDER_ASSIGNED, {
+        dispatchId: dispatch._id.toString(),
+
+        orderId: acceptedOffer.order.toString(),
+
+        riderId,
+      });
+
+      return acceptedOffer;
+    } finally {
+      await session.endSession();
+    }
   }
 }
 

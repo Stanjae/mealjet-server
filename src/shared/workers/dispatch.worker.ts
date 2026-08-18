@@ -9,10 +9,13 @@ import { workerConnection } from "@shared/config/queue-connection";
 let dispatchWorker: Worker<TDispatchJob> | null = null;
 
 async function processDispatchJob(job: Job<TDispatchJob>) {
-  const { dispatchId } = job.data;
+  const { dispatchId, dispatchAttemptId } = job.data;
   switch (job.name) {
     case QUEUE_ACTIONS.START_DISPATCH:
       await dispatchService.startDispatch(dispatchId);
+      return;
+    case QUEUE_ACTIONS.OFFER_TIMEOUT:
+      await dispatchService.offerTimeout(dispatchId, dispatchAttemptId);
       return;
     case QUEUE_ACTIONS.RETRY_DISPATCH:
       await dispatchService.retryDispatch(dispatchId);

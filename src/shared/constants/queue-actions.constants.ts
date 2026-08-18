@@ -7,11 +7,9 @@ export const QUEUE_ACTIONS = {
   OFFER_TIMEOUT: "offer-timeout",
 
   //notification
-  SEND_RIDER_OFFER_NOTIFICATION: "send-rider-offer-notification",
-
   SEND_DISPATCH_OFFER: "send-dispatch-offer",
   SEND_DISPATCH_OFFER_ACCEPTED: "send-dispatch-offer-accepted",
   SEND_DISPATCH_OFFER_REJECTED: "send-dispatch-offer-rejected",
   SEND_DISPATCH_OFFER_EXPIRED: "send-dispatch-offer-expired",
-  SEND_DISPATCH_OFFER_CANCELLED: "send-dispatch-offer-cancelled",
+  SEND_DISPATCH_FAILED: "send-dispatch-failed",
 };
